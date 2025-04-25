@@ -1,0 +1,57 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env.compose
+    depends_on:
+      db_service:
+        condition: service_healthy
+    environment:
+      - DATABASE_HOST=db_service
+      - DATABASE_PORT=5432
+      - DATABASE_USER=${POSTGRES_USER}
+      - DATABASE_PASSWORD=${POSTGRES_PASSWORD}
+      - DATABASE_NAME=${POSTGRES_DB}
+    ports:
+      - "8002:8002"
+    command: uvicorn main:app --host 0.0.0.0 --port 8002 --reload
+    volumes:
+      - ./src:/code:rw
+    develop:
+      watch:
+        - action: rebuild
+          path: Dockerfile
+        - action: rebuild
+          path: requirements.txt
+        - action: rebuild
+          path: compose.yaml
+    networks:
+      - my_network
+
+  db_service:
+    image: postgres:17.4
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    networks:
+      - my_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  db_data:
+    driver: local
+
+networks:
+  my_network:
+    driver: bridge

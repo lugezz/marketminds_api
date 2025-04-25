@@ -1,0 +1,5 @@
+.env
+.env.compose
+cliente/
+*.pyc
+mdt_negocio_bup.csv
