@@ -6,6 +6,7 @@ from fastapi import APIRouter
 # from api.marketminds.models import (
 #     ProvinciaModel,
 # )
+from api.import_dataset.tools import import_dataset
 
 
 router = APIRouter()
@@ -15,4 +16,12 @@ router = APIRouter()
 def health_check():
     """ Health check endpoint.
     """
+    return {"status": "ok"}
+
+
+@router.get("/import-dataset/")
+def import_data():
+    """ Import data from CSV file.
+    """
+    import_dataset()
     return {"status": "ok"}

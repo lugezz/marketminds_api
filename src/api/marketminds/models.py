@@ -111,8 +111,8 @@ Columns:
 (ok) id_tie_fecha_alta
 (ok) pv_x
 (ok) pv_y
-(ok) id_cli_canal_dist
-(ok) desc_cli_canal_dist
+*(ok) id_cli_canal_dist
+* (ok) desc_cli_canal_dist
 (ok) id_cli_categoria_dist
 (ok) id_cli_subcanal_adic_dist
 (ok) desc_cli_subcanal_dist
