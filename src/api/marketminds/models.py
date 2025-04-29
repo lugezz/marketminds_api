@@ -10,104 +10,6 @@ def get_utc_now():
     return datetime.now(timezone.utc).replace(tzinfo=timezone.utc)
 
 
-class BaseModel(SQLModel):
-    id: Optional[int] = Field(
-        primary_key=True,
-        default=None,
-        index=True,
-        description="ID",
-        sa_column_kwargs={"autoincrement": True}
-    )
-    created_at: datetime = Field(
-        default_factory=get_utc_now,
-        sa_type=DateTime(timezone=True),
-        description="Creation timestamp",
-        nullable=False,
-    )
-    updated_at: datetime = Field(
-        default_factory=get_utc_now,
-        sa_type=DateTime(timezone=True),
-        description="Update timestamp",
-        nullable=False,
-    )
-
-
-"""
-rename_columns = {
-    'id_pdv_unique': 'Cod. PDV',
-    'pois_agencias_de_viajes': 'POIS - Agencia de Viaje',
-    'pois_alimentacion': 'POIS - Alimentación',
-    'pois_alojamientos': 'POIS - Alojamiento',
-    'pois_atracciones_turisticas': 'POIS - Atracciones Turisticas',
-    'pois_bares_bodegas': 'POIS - Bares/Bodegas',
-    'pois_centros_de_salud': 'POIS - Centro de Salud',
-    'pois_clubes_deportivos': 'POIS - Clubes Deportivos',
-    'pois_clubes_nocturnos': 'POIS - Clubes Nocturnos',
-    'pois_escuelas': 'POIS -Escuelas',
-    'pois_heladerias': 'POIS - Heladerias',
-    'pois_hoteles': 'POIS - Hoteles',
-    'pois_instituciones_educativas': 'POIS - Instituciones Educativas',
-    'pois_otras_instituciones': 'POIS - Otras Instituciones',
-    'pois_servicios_de_transporte': 'POIS - Transporte',
-    'pois_bus_stop': 'POIS - Paradas de Bus',
-    'total_pois': 'POIS - Totales',
-    'total_pdvs_per_geohash': 'Total POIs en Geohash',
-    'average_order_value': 'Ticket Promedio ($)',
-    'total_sales': 'Ventas Totales ($)',
-    'total_kgn': 'Ventas Totales (Kg)',
-    'total_bultos': 'Ventas Totales (Bu)',
-    'average_monthly_sales': 'Promedio Ventas Mensuales ($)',
-    'average_active_monthly_sales': 'Promedio Ventas Meses Activos ($)',
-    'deviation_monthly_sales': 'Desvio de Ventas Mensuales ($)',
-    'average_monthly_kgn': 'Promedio Ventas Mensuales (Kg)',
-    'average_active_monthly_kgn': 'Promedio Ventas Meses Activos (Kg)',
-    'average_kgn_order': 'Ticket Promedio (Kg)',
-    'omni_channel': 'Multicanal',
-    'different_sku': 'SKU Diferentes',
-    'ordenes_promedios_semanales_por_pdv': 'Ordenes Promedio Semanal',
-    'buy_freq': 'Frecuencia de Compra Total',
-    'buy_freq_hari_tostadas': 'Frecuencia de Compra Tostadas',
-    'buy_freq_alimentos': 'Frecuencia de Compra Alimentos',
-    'buy_freq_chocolates': 'Frecuencia de Compra Chocolate',
-    'buy_freq_golosinas': 'Frecuencia de Compra Golosinas',
-    'buy_freq_harinas': 'Frecuencia de Compra Harina',
-    'fea_people_density_sqkm': 'Densidad Poblacional',
-    'nse': 'Nivel Socioeconomico',
-    'cantidad_exhibidores': 'Exhibidores',
-    'cantidad_pasillos': 'Pasillos',
-    'cantidad_proveedores': 'Proveedores',
-    'cantidad_cajas': 'Cajas',
-    'cantidad_heladeras': 'Heladeras',
-    'tiene_ingreso': 'Ingreso',
-    'metros2': 'Tamaño',
-    'app_delivery': 'Delivery',
-    'cobro_digital': 'Digital',
-    'otros_servicios': 'Servicios',
-    'en_esquina': 'Esquina',
-    'abierto_24h': '24H',
-    'vende_alcohol': 'Alcohol',
-    'vende_productos_fraccionados': 'Fraccionados',
-    'vende_productos_lacteos': 'Lacteos',
-    'sobre_avenida': 'Avenida',
-    'vende_productos_granel': 'Granel',
-    'tiene_freezer': 'Freezer',
-    'id_cli_suc_cuenta': 'ID Sucursal/Cuenta',
-    'desc_cli_suc_cuenta': 'Sucursal/Cuenta',
-    'id_tie_fecha_alta': 'Fecha de Alta',
-    'pv_x': 'Latitud',
-    'pv_y': 'Longitud',
-    'desc_cli_canal_dist': 'Canal',
-    'id_cli_categoria_dist': 'Categoria',
-    'desc_cli_subcanal_dist': 'Subcanal',
-    'pv_pcia': 'Provincia',
-    'pv_departamento': 'Departamento',
-    'geohash': 'Geohash',
-    'desc_cli_vendedor': 'Jefe de Cuenta',
-    'desc_cli_gte_regional': 'Gte. Regional',
-    'desc_cli_gte_nacional': 'Gte. Nacional'
-}
-"""
-
 """
 Columns:
 (ok) id_pdv_unique
@@ -119,7 +21,7 @@ Columns:
 (ok) pv_y
 *(ok) id_cli_canal_dist
 * (ok) desc_cli_canal_dist
-(ok) id_cli_categoria_dist
+* (ok) id_cli_categoria_dist
 (ok) id_cli_subcanal_adic_dist
 (ok) desc_cli_subcanal_dist
 (ok) pv_pcia
@@ -173,42 +75,27 @@ Columns:
     pois_servicios_de_transporte
     pois_bus_stop
     total_pois
-
-Para ser calculados:
-    total_pdvs_per_geohash
-    average_order_value
-    total_sales
-    total_kgn
-    total_bultos
-    average_monthly_sales
-    average_active_monthly_sales
-    deviation_monthly_sales
-    average_monthly_kgn
-    average_active_monthly_kgn
-    average_kgn_order
-    omni_channel
-    different_sku
-    ordenes_promedios_semanales_por_pdv
-    buy_freq
-    buy_freq_alimentos
-    buy_freq_chocolates
-    buy_freq_golosinas
-    buy_freq_harinas
-    fea_people_density_sqkm
-    nse_category
-    cluster_sales
-    cluster_geo
-    cluster_size
-    hubs_ps
-    density_category
-    total_sales_category
-    total_kgn_category
-    total_bultos_category
-    average_monthly_sales_category
-    average_monthly_kgn_category
-    average_active_monthly_sales_category
-    potencial
 """
+
+
+class BaseModel(SQLModel):
+    id: str = Field(
+        primary_key=True,
+        index=True,
+        description="ID",
+    )
+    created_at: datetime = Field(
+        default_factory=get_utc_now,
+        sa_type=DateTime(timezone=True),
+        description="Creation timestamp",
+        nullable=False,
+    )
+    updated_at: datetime = Field(
+        default_factory=get_utc_now,
+        sa_type=DateTime(timezone=True),
+        description="Update timestamp",
+        nullable=False,
+    )
 
 
 # Client model -----------------
@@ -219,18 +106,18 @@ class ClientModel(BaseModel, table=True):
     #     foreign_key="sucursalmodel.id",
     #     description="Foreign key a SucursalModel"
     # )
-    canal_distribucion_id: Optional[int] = Field(
-        default=None,
+    canal_distribucion_id: Optional[str] = Field(
         foreign_key="canaldistribucionmodel.id"
     )
     canal_distribucion: Optional["CanalDistribucionModel"] = Relationship(
         back_populates="clients"
     )
-    # categoria_id: Optional[int] = Field(
-    #     default=None,
-    #     foreign_key="categorialmodel.id",
-    #     description="Foreign key a CategoriaModel"
-    # )
+    categoria_id: Optional[str] = Field(
+        foreign_key="categoriamodel.id",
+    )
+    categoria: Optional["CategoriaModel"] = Relationship(
+        back_populates="clients"
+    )
     # subcanal_adicional_id: Optional[int] = Field(
     #     default=None,
     #     foreign_key="subcanaladicionalmodel.id",
@@ -246,37 +133,33 @@ class ClientModel(BaseModel, table=True):
     #     foreign_key="gerenteregionalmodel.id",
     #     description="Foreign key a GerenteRegionalModel"
     # )
-    # gerente_nacional_id: Optional[int] = Field(
-    #     default=None,
-    #     foreign_key="gerentenacionalmodel.id",
-    #     description="Foreign key a GerenteNacionalModel"
-    # )
-
-
-# Provincias Model -----------------
-class ProvinciaModel(BaseModel):
-    """ Model for Provincias
-    """
-
-    name: str = Field(..., description="Nombre Provincia")
-    departamentos: List["DepartamentoModel"] = Relationship(
-        back_populates="provincia",
-        sa_relationship_kwargs={"description": "Lista de Departamentos en esta Provincia"}
+    gerente_nacional_id: Optional[str] = Field(
+        foreign_key="gerentenacionalmodel.id",
+    )
+    gerente_nacional: Optional["GerenteNacionalModel"] = Relationship(
+        back_populates="clients"
     )
 
 
 # Departamentos Model -----------------
-class DepartamentoModel(BaseModel):
+class DepartamentoModel(BaseModel, table=True):
     """ Model for Departamentos"""
     name: str = Field(..., description="Nombre Departamento")
-    provincia_id: Optional[int] = Field(
-        default=None,
+    provincia_id: Optional[str] = Field(
         foreign_key="provinciamodel.id",
-        description="Foreign key a ProvinciaModel"
     )
     provincia: Optional["ProvinciaModel"] = Relationship(
         back_populates="departamentos",
-        sa_relationship_kwargs={"description": "Provincia relacionada con este Departamento"}
+    )
+
+
+# Provincias Model -----------------
+class ProvinciaModel(BaseModel, table=True):
+    """ Model for Provincias
+    """
+    name: str = Field(..., description="Nombre Provincia")
+    departamentos: List["DepartamentoModel"] = Relationship(
+        back_populates="provincia",
     )
 
 
@@ -433,11 +316,10 @@ class CanalDistribucionModel(BaseModel, table=True):
 
 
 # Categoria Model -----------------
-class CategoriaModel(BaseModel):
+class CategoriaModel(BaseModel, table=True):
     name: str = Field(..., description="Nombre Categoria")
     clients: List["ClientModel"] = Relationship(
         back_populates="categoria",
-        sa_relationship_kwargs={}
     )
 
 
@@ -469,7 +351,7 @@ class GerenteRegionalModel(BaseModel):
 
 
 # Gerente Nacional Model -----------------
-class GerenteNacionalModel(BaseModel):
+class GerenteNacionalModel(BaseModel, table=True):
     name: str = Field(..., description="Nombre Gerente Nacional")
     clients: List["ClientModel"] = Relationship(
         back_populates="gerente_nacional",

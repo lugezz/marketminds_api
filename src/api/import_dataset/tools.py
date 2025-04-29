@@ -5,9 +5,9 @@ import pandas as pd
 from api.db.session import get_session
 from api.marketminds.models import (
     CanalDistribucionModel,
-    # CategoriaModel,
-    # DepartamentoModel,
-    # GerenteNacionalModel,
+    CategoriaModel,
+    DepartamentoModel,
+    GerenteNacionalModel,
     # GerenteRegionalModel,
     # PDVModel,
     # POIModel,
@@ -37,6 +37,36 @@ def get_set_of_ids(model_to_get) -> set:
     return ids
 
 
+def process_any_id_name_pair(row, id_key: str, name_key: str, ids_set: set, model_class):
+    """
+    Procesa un par de id y nombre de cualquier modelo.
+    :param row: La fila del DataFrame.
+    :param id_key: La clave del id en el DataFrame.
+    :param name_key: La clave del nombre en el DataFrame.
+    :param model_class: La clase del modelo a procesar.
+    :return: None si no crea o registro creado
+    """
+    id_value = str(row[id_key])
+    if name_key == "(Sin nombre)":
+        name_value = name_key
+    else:
+        name_value = str(row[name_key])
+
+    this_registro = None
+    if (
+        id_value not in ids_set or
+        pd.isna(id_value) or
+        pd.isna(name_value)
+    ):
+        # Sólo agregar si el id y la descripción no son nulos y no están en el set
+        this_registro = model_class(
+            id=id_value,
+            name=name_value,
+        )
+
+    return this_registro
+
+
 def import_dataset() -> dict:
     # Toma el archivo de import (api/datasets/mdt_negocio_import.csv), lo convierte a un dataframe
     # y lo va procesando en los modelos de la base de datos.
@@ -55,6 +85,12 @@ def import_dataset() -> dict:
     # Sets de ids para evitar duplicados
     initial_canal_distribucion = get_set_of_ids(CanalDistribucionModel)
     ids_canal_distribucion = initial_canal_distribucion.copy()
+    initial_categoria = get_set_of_ids(CategoriaModel)
+    ids_categoria = initial_categoria.copy()
+    initial_departamento = get_set_of_ids(DepartamentoModel)
+    ids_departamento = initial_departamento.copy()
+    initial_gerente_nacional = get_set_of_ids(GerenteNacionalModel)
+    ids_gerente_nacional = initial_gerente_nacional.copy()
 
     # Procesar cada fila del DataFrame
     for index, row in df.iterrows():
@@ -63,30 +99,51 @@ def import_dataset() -> dict:
             continue
         # Crear instancias de los modelos y asignar valores ------------------------------------
         # CanalDistribucionModel -----------------------------
-        id_cli_canal_dist = row["id_cli_canal_dist"]
-        desc_cli_canal_dist = row["desc_cli_canal_dist"]
+        new_canal = process_any_id_name_pair(
+            row,
+            id_key="id_cli_canal_dist",
+            name_key="desc_cli_canal_dist",
+            ids_set=ids_canal_distribucion,
+            model_class=CanalDistribucionModel,
+        )
 
-        if (
-            id_cli_canal_dist not in ids_canal_distribucion or
-            pd.isna(id_cli_canal_dist) or
-            pd.isna(desc_cli_canal_dist)
-        ):
-            # Sólo agregar si el id y la descripción no son nulos y no están en el set
-            canal_distribucion = CanalDistribucionModel(
-                id=id_cli_canal_dist,
-                name=desc_cli_canal_dist,
-            )
-            models_to_import.append(canal_distribucion)
-            ids_canal_distribucion.add(id_cli_canal_dist)
+        if new_canal:
+            models_to_import.append(new_canal)
+            ids_canal_distribucion.add(str(new_canal.id))
 
-        # categoria = CategoriaModel(
-        #     id=row["categoria_id"],
-        #     nombre=row["categoria_nombre"],
+        # Categoría ------------------------------------------
+        new_categoria = process_any_id_name_pair(
+            row,
+            id_key="id_cli_categoria_dist",
+            name_key="(Sin nombre)",
+            ids_set=ids_categoria,
+            model_class=CategoriaModel,
+        )
+        if new_categoria:
+            models_to_import.append(new_categoria)
+            ids_categoria.add(str(new_categoria.id))
+
+        # Departamento --------------------------------------
+        # new_departamento = process_any_id_name_pair(
+        #     row,
+        #     id_key="departamento_id",
+        #     name_key="departamento_nombre",
+        #     ids_set=ids_departamento,
+        #     model_class=DepartamentoModel,
         # )
-        # departamento = DepartamentoModel(
-        #     id=row["departamento_id"],
-        #     nombre=row["departamento_nombre"],
-        # )
+
+        # Gerente Nacional --------------------------------
+        new_gerente_nacional = process_any_id_name_pair(
+            row,
+            id_key="id_cli_gte_nacional",
+            name_key="desc_cli_gte_nacional",
+            ids_set=ids_gerente_nacional,
+            model_class=GerenteNacionalModel,
+        )
+        if new_gerente_nacional:
+            models_to_import.append(new_gerente_nacional)
+            ids_gerente_nacional.add(str(new_gerente_nacional.id))
+
         # gerente_nacional = GerenteNacionalModel(
         #     id=row["gerente_nacional_id"],
         #     nombre=row["gerente_nacional_nombre"],
@@ -130,9 +187,9 @@ def import_dataset() -> dict:
 
     resp['registros_added'] = {
         "canal_distribucion": len(ids_canal_distribucion) - len(initial_canal_distribucion),
-        # "categoria": len(ids_categoria),
-        # "departamento": len(ids_departamento),
-        # "gerente_nacional": len(ids_gerente_nacional),
+        "categoria": len(ids_categoria) - len(initial_categoria),
+        "departamento": len(ids_departamento) - len(initial_departamento),
+        "gerente_nacional": len(ids_gerente_nacional) - len(initial_gerente_nacional),
         # "gerente_regional": len(ids_gerente_regional),
         # "pdv": len(ids_pdv),
         # "poi_type": len(ids_poi_type),
