@@ -20,6 +20,21 @@ from api.marketminds.models import (
 
 logger = logging.getLogger(__name__)
 
+session = next(get_session())
+
+
+def get_set_of_ids(model_to_get) -> set:
+    """
+    Devuelve un set de ids de un modelo específico.
+    :param model_to_get: El modelo del cual se quiere obtener los ids.
+    :return: Un set con los ids del modelo.
+    """
+    # Obtener todos los registros del modelo
+    all_records = session.query(model_to_get).all()
+    # Crear un set con los ids
+    ids = {record.id for record in all_records}
+    return ids
+
 
 def import_dataset():
     # Toma el archivo de import (api/datasets/mdt_negocio_import.csv), lo convierte a un dataframe
@@ -29,11 +44,10 @@ def import_dataset():
     df = pd.read_csv("api/datasets/mdt_negocio_import.csv", encoding="utf-8")
 
     # Crear una sesión de base de datos
-    session = get_session()
     models_to_import = []
 
     # Sets de ids para evitar duplicados
-    ids_canal_distribucion = set()
+    ids_canal_distribucion = get_set_of_ids(CanalDistribucionModel)
 
     # Procesar cada fila del DataFrame
     for index, row in df.iterrows():
@@ -103,16 +117,16 @@ def import_dataset():
         #     nombre=row["vendedor_nombre"],
         # )
 
-        # Agregar las instancias a la sesión
-        print("Se está importando el modelo canal_distribucion", "Cantidad registros: ", len(models_to_import))
-        session.add_all(models_to_import)
-        # session.add(categoria)
-        # session.add(departamento)
-        # session.add(gerente_nacional)
-        # session.add(gerente_regional)
-        # session.add(pdv)
-        # session.add(poi_type)
-        # session.add(poi)
-        # session.add(provincia)
+    # Agregar las instancias a la sesión
+    print("Se está importando el modelo canal_distribucion", "Cantidad registros: ", len(models_to_import))
+    session.add_all(models_to_import)
+    # session.add(categoria)
+    # session.add(departamento)
+    # session.add(gerente_nacional)
+    # session.add(gerente_regional)
+    # session.add(pdv)
+    # session.add(poi_type)
+    # session.add(poi)
+    # session.add(provincia)
 
-        session.commit()
+    session.commit()

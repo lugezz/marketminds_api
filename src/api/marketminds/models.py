@@ -10,7 +10,7 @@ def get_utc_now():
     return datetime.now(timezone.utc).replace(tzinfo=timezone.utc)
 
 
-class BaseModel(SQLModel, table=True):
+class BaseModel(SQLModel):
     id: Optional[int] = Field(default=None, primary_key=True, index=True, description="ID")
     created_at: datetime = Field(
         default_factory=get_utc_now,
@@ -205,6 +205,48 @@ Para ser calculados:
 """
 
 
+# Client model -----------------
+class ClientModel(BaseModel, table=True):
+    name: str = Field(..., description="Nombre Cliente")
+    # sucursal_id: Optional[int] = Field(
+    #     default=None,
+    #     foreign_key="sucursalmodel.id",
+    #     description="Foreign key a SucursalModel"
+    # )
+    canal_distribucion_id: Optional[int] = Field(
+        default=None,
+        foreign_key="canaldistribucionmodel.id"
+    )
+    canal_distribucion: Optional["CanalDistribucionModel"] = Relationship(
+        back_populates="clients"
+    )
+    # categoria_id: Optional[int] = Field(
+    #     default=None,
+    #     foreign_key="categorialmodel.id",
+    #     description="Foreign key a CategoriaModel"
+    # )
+    # subcanal_adicional_id: Optional[int] = Field(
+    #     default=None,
+    #     foreign_key="subcanaladicionalmodel.id",
+    #     description="Foreign key a SubcanalAdicionalModel"
+    # )
+    # vendedor_id: Optional[int] = Field(
+    #     default=None,
+    #     foreign_key="vendedormodel.id",
+    #     description="Foreign key a VendedorModel"
+    # )
+    # gerente_regional_id: Optional[int] = Field(
+    #     default=None,
+    #     foreign_key="gerenteregionalmodel.id",
+    #     description="Foreign key a GerenteRegionalModel"
+    # )
+    # gerente_nacional_id: Optional[int] = Field(
+    #     default=None,
+    #     foreign_key="gerentenacionalmodel.id",
+    #     description="Foreign key a GerenteNacionalModel"
+    # )
+
+
 # Provincias Model -----------------
 class ProvinciaModel(BaseModel):
     """ Model for Provincias
@@ -372,16 +414,15 @@ class SucursalModel(BaseModel):
 
     clients: List["ClientModel"] = Relationship(
         back_populates="sucursal",
-        sa_relationship_kwargs={"description": "Lista de Clients en esta Sucursal"}
+        sa_relationship_kwargs={}
     )
 
 
 # Canal Distribucion model -----------------
-class CanalDistribucionModel(BaseModel):
+class CanalDistribucionModel(BaseModel, table=True):
     name: str = Field(..., description="Nombre Canal Distribucion")
     clients: List["ClientModel"] = Relationship(
-        back_populates="canal_distribucion",
-        sa_relationship_kwargs={"description": "Lista de Clients en este Canal Distribucion"}
+        back_populates="canal_distribucion"
     )
 
 
@@ -390,7 +431,7 @@ class CategoriaModel(BaseModel):
     name: str = Field(..., description="Nombre Categoria")
     clients: List["ClientModel"] = Relationship(
         back_populates="categoria",
-        sa_relationship_kwargs={"description": "Lista de Clients en esta Categoria"}
+        sa_relationship_kwargs={}
     )
 
 
@@ -399,7 +440,7 @@ class SubcanalAdicionalModel(BaseModel):
     name: str = Field(..., description="Nombre Subcanal Adicional")
     clients: List["ClientModel"] = Relationship(
         back_populates="subcanal_adicional",
-        sa_relationship_kwargs={"description": "Lista de Clients en este Subcanal Adicional"}
+        sa_relationship_kwargs={}
     )
 
 
@@ -408,7 +449,7 @@ class VendedorModel(BaseModel):
     name: str = Field(..., description="Nombre Vendedor")
     clients: List["ClientModel"] = Relationship(
         back_populates="vendedor",
-        sa_relationship_kwargs={"description": "Lista de Clients en este Vendedor"}
+        sa_relationship_kwargs={}
     )
 
 
@@ -417,7 +458,7 @@ class GerenteRegionalModel(BaseModel):
     name: str = Field(..., description="Nombre Gerente Regional")
     clients: List["ClientModel"] = Relationship(
         back_populates="gerente_regional",
-        sa_relationship_kwargs={"description": "Lista de Clients en este Gerente Regional"}
+        sa_relationship_kwargs={}
     )
 
 
@@ -426,47 +467,7 @@ class GerenteNacionalModel(BaseModel):
     name: str = Field(..., description="Nombre Gerente Nacional")
     clients: List["ClientModel"] = Relationship(
         back_populates="gerente_nacional",
-        sa_relationship_kwargs={"description": "Lista de Clients en este Gerente Nacional"}
-    )
-
-
-# Client model -----------------
-class ClientModel(BaseModel):
-    name: str = Field(..., description="Nombre Cliente")
-    sucursal_id: Optional[int] = Field(
-        default=None,
-        foreign_key="sucursalmodel.id",
-        description="Foreign key a SucursalModel"
-    )
-    canal_distribucion_id: Optional[int] = Field(
-        default=None,
-        foreign_key="canaldistribucionmodel.id",
-        description="Foreign key a CanalDistribucionModel"
-    )
-    categoria_id: Optional[int] = Field(
-        default=None,
-        foreign_key="categorialmodel.id",
-        description="Foreign key a CategoriaModel"
-    )
-    subcanal_adicional_id: Optional[int] = Field(
-        default=None,
-        foreign_key="subcanaladicionalmodel.id",
-        description="Foreign key a SubcanalAdicionalModel"
-    )
-    vendedor_id: Optional[int] = Field(
-        default=None,
-        foreign_key="vendedormodel.id",
-        description="Foreign key a VendedorModel"
-    )
-    gerente_regional_id: Optional[int] = Field(
-        default=None,
-        foreign_key="gerenteregionalmodel.id",
-        description="Foreign key a GerenteRegionalModel"
-    )
-    gerente_nacional_id: Optional[int] = Field(
-        default=None,
-        foreign_key="gerentenacionalmodel.id",
-        description="Foreign key a GerenteNacionalModel"
+        sa_relationship_kwargs={}
     )
 
 
@@ -475,7 +476,7 @@ class POISTypeModel(BaseModel):
     name: str = Field(..., description="Nombre POI")
     pois: List["POIModel"] = Relationship(
         back_populates="pois_type",
-        sa_relationship_kwargs={"description": "Lista de POIs en este tipo de POI"}
+        sa_relationship_kwargs={}
     )
 
 
@@ -491,3 +492,8 @@ class POIModel(BaseModel):
         foreign_key="pdvmodel.id",
         description="Foreign key a PDVModel"
     )
+
+
+# Model rebuild -----------------
+CanalDistribucionModel.model_rebuild()
+ClientModel.model_rebuild()
