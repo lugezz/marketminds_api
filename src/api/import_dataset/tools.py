@@ -31,14 +31,20 @@ def get_set_of_ids(model_to_get) -> set:
     """
     # Obtener todos los registros del modelo
     all_records = session.query(model_to_get).all()
+
     # Crear un set con los ids
     ids = {record.id for record in all_records}
     return ids
 
 
-def import_dataset():
+def import_dataset() -> dict:
     # Toma el archivo de import (api/datasets/mdt_negocio_import.csv), lo convierte a un dataframe
     # y lo va procesando en los modelos de la base de datos.
+    resp = {
+        "status": 200,
+        "message": "Importación de dataset exitosa",
+        "registros_added": {}
+    }
 
     # Cargar el archivo CSV en un DataFrame de pandas
     df = pd.read_csv("api/datasets/mdt_negocio_import.csv", encoding="utf-8")
@@ -47,7 +53,8 @@ def import_dataset():
     models_to_import = []
 
     # Sets de ids para evitar duplicados
-    ids_canal_distribucion = get_set_of_ids(CanalDistribucionModel)
+    initial_canal_distribucion = get_set_of_ids(CanalDistribucionModel)
+    ids_canal_distribucion = initial_canal_distribucion.copy()
 
     # Procesar cada fila del DataFrame
     for index, row in df.iterrows():
@@ -118,15 +125,25 @@ def import_dataset():
         # )
 
     # Agregar las instancias a la sesión
-    print("Se está importando el modelo canal_distribucion", "Cantidad registros: ", len(models_to_import))
     session.add_all(models_to_import)
-    # session.add(categoria)
-    # session.add(departamento)
-    # session.add(gerente_nacional)
-    # session.add(gerente_regional)
-    # session.add(pdv)
-    # session.add(poi_type)
-    # session.add(poi)
-    # session.add(provincia)
-
     session.commit()
+
+    resp['registros_added'] = {
+        "canal_distribucion": len(ids_canal_distribucion) - len(initial_canal_distribucion),
+        # "categoria": len(ids_categoria),
+        # "departamento": len(ids_departamento),
+        # "gerente_nacional": len(ids_gerente_nacional),
+        # "gerente_regional": len(ids_gerente_regional),
+        # "pdv": len(ids_pdv),
+        # "poi_type": len(ids_poi_type),
+        # "poi": len(ids_poi),
+        # "provincia": len(ids_provincia),
+        # "subcanal_adicional": len(ids_subcanal_adicional),
+        # "sucursal": len(ids_sucursal),
+        # "vendedor": len(ids_vendedor),
+    }
+
+    # Cerrar la sesión
+    session.close()
+
+    return resp

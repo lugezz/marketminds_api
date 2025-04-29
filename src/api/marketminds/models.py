@@ -11,7 +11,13 @@ def get_utc_now():
 
 
 class BaseModel(SQLModel):
-    id: Optional[int] = Field(default=None, primary_key=True, index=True, description="ID")
+    id: Optional[int] = Field(
+        primary_key=True,
+        default=None,
+        index=True,
+        description="ID",
+        sa_column_kwargs={"autoincrement": True}
+    )
     created_at: datetime = Field(
         default_factory=get_utc_now,
         sa_type=DateTime(timezone=True),
@@ -492,8 +498,3 @@ class POIModel(BaseModel):
         foreign_key="pdvmodel.id",
         description="Foreign key a PDVModel"
     )
-
-
-# Model rebuild -----------------
-CanalDistribucionModel.model_rebuild()
-ClientModel.model_rebuild()

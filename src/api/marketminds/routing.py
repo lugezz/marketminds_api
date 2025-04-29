@@ -23,5 +23,11 @@ def health_check():
 def import_data():
     """ Import data from CSV file.
     """
-    import_dataset()
-    return {"status": "ok"}
+    import_result = import_dataset()
+    if import_result["status"] != 200:
+        return {
+            "status": import_result["status"],
+            "message": import_result["message"]
+        }
+
+    return import_result

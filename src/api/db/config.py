@@ -14,11 +14,6 @@ DATABASE_URL = (
     f"@{DATABASE_CONFIG['host']}:{DATABASE_CONFIG['port']}/{DATABASE_CONFIG['database']}"
 )
 
-print("°°°°°°°°°°°°°") 
-print("DATABASE_CONFIG: ", DATABASE_CONFIG)
-print("DATABASE_URL: ", DATABASE_URL)
-print("°°°°°°°°°°°°°") 
-
 
 def get_db_url() -> str:
     """ Get the database URL.
