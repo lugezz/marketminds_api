@@ -5,31 +5,31 @@ import pandas as pd
 from api.db.session import get_session
 from api.marketminds.models import (
     CanalDistribucionModel,
-    CategoriaModel,
-    DepartamentoModel,
-    GerenteNacionalModel,
-    GerenteRegionalModel,
-    PDVModel,
-    POIModel,
-    POISTypeModel,
-    ProvinciaModel,
-    SubcanalAdicionalModel,
-    SucursalModel,
-    VendedorModel,
+    # CategoriaModel,
+    # DepartamentoModel,
+    # GerenteNacionalModel,
+    # GerenteRegionalModel,
+    # PDVModel,
+    # POIModel,
+    # POISTypeModel,
+    # ProvinciaModel,
+    # SubcanalAdicionalModel,
+    # SucursalModel,
+    # VendedorModel,
 )
 
 logger = logging.getLogger(__name__)
 
 
 def import_dataset():
-    # Toma el archivo de import (api/datasets/mdt_negocio_import.csv), lo convierte a un dataframe 
+    # Toma el archivo de import (api/datasets/mdt_negocio_import.csv), lo convierte a un dataframe
     # y lo va procesando en los modelos de la base de datos.
 
     # Cargar el archivo CSV en un DataFrame de pandas
     df = pd.read_csv("api/datasets/mdt_negocio_import.csv", encoding="utf-8")
 
     # Crear una sesión de base de datos
-    session = next(get_session())
+    session = get_session()
     models_to_import = []
 
     # Sets de ids para evitar duplicados

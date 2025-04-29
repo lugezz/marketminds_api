@@ -1,7 +1,23 @@
 from decouple import config
 
 
-DATABASE_URL = config("DATABASE_URL", default="sqlite:///./test.db")
+DATABASE_CONFIG = {
+    "user": config("MYSQL_USER", default="root"),
+    "password": config("MYSQL_PASSWORD", default=""),
+    "host": config("MYSQL_HOST", default="localhost"),
+    "port": config("MYSQL_PORT", default="3306"),
+    "database": config("MYSQL_DATABASE", default="market_minds_db"),
+}
+
+DATABASE_URL = (
+    f"mysql+pymysql://{DATABASE_CONFIG['user']}:{DATABASE_CONFIG['password']}"
+    f"@{DATABASE_CONFIG['host']}:{DATABASE_CONFIG['port']}/{DATABASE_CONFIG['database']}"
+)
+
+print("°°°°°°°°°°°°°") 
+print("DATABASE_CONFIG: ", DATABASE_CONFIG)
+print("DATABASE_URL: ", DATABASE_URL)
+print("°°°°°°°°°°°°°") 
 
 
 def get_db_url() -> str:

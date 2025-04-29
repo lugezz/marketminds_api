@@ -6,14 +6,14 @@ services:
     env_file:
       - .env.compose
     depends_on:
-      db_service:
+      mysql_service:
         condition: service_healthy
     environment:
-      - DATABASE_HOST=db_service
-      - DATABASE_PORT=5432
-      - DATABASE_USER=${POSTGRES_USER}
-      - DATABASE_PASSWORD=${POSTGRES_PASSWORD}
-      - DATABASE_NAME=${POSTGRES_DB}
+      - DATABASE_HOST=mysql_container
+      - DATABASE_PORT=${MYSQL_PORT}
+      - DATABASE_USER=${MYSQL_USER}
+      - DATABASE_PASSWORD=${MYSQL_PASSWORD}
+      - DATABASE_NAME=${MYSQL_DATABASE}
     ports:
       - "8002:8002"
     command: uvicorn main:app --host 0.0.0.0 --port 8002 --reload
@@ -30,23 +30,25 @@ services:
     networks:
       - my_network
 
-  db_service:
-    image: postgres:17.4
+  mysql_service:
+    image: mysql:8.4.5
+    container_name: mysql_container
     environment:
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - db_data:/var/lib/mysql
     ports:
-      - "5433:5432"
+      - "3307:3306"
     networks:
       - my_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+      test: ["CMD", "mysqladmin", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
 volumes:
   db_data:

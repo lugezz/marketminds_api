@@ -1,8 +1,9 @@
 fastapi==0.115.12
 gunicorn==23.0.0
+mysqlclient==2.2.7
 pandas==2.2.3
-psycopg[binary]==3.1.12
 pydantic==2.11.3
+PyMySQL==1.1.1
 python-decouple==3.8
 requests==2.32.3
 SQLAlchemy==2.0.40
