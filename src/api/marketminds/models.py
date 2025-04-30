@@ -13,24 +13,24 @@ def get_utc_now():
 """
 Columns:
 (ok) id_pdv_unique
-(ok) id_cli_suc_cuenta
+* (ok) id_cli_suc_cuenta
 (ok) id_cod_pdv
-(ok) desc_cli_suc_cuenta
+* (ok) desc_cli_suc_cuenta
 (ok) id_tie_fecha_alta
 (ok) pv_x
 (ok) pv_y
 * (ok) id_cli_canal_dist
 * (ok) desc_cli_canal_dist
 * (ok) id_cli_categoria_dist
-(ok) id_cli_subcanal_adic_dist
-(ok) desc_cli_subcanal_dist
+* (ok) id_cli_subcanal_adic_dist
+* (ok) desc_cli_subcanal_dist
 * (ok) pv_pcia
 * (ok) pv_departamento
 (ok) geohash
-(ok) id_cli_vendedor
-(ok) desc_cli_vendedor
-(ok) id_cli_gte_regional
-(ok) desc_cli_gte_regional
+* (ok) id_cli_vendedor
+* (ok) desc_cli_vendedor
+* (ok) id_cli_gte_regional
+* (ok) desc_cli_gte_regional
 * (ok) id_cli_gte_nacional
 * (ok) desc_cli_gte_nacional
 (ok) indicar_cantidad_de_bandejas
@@ -121,43 +121,26 @@ class BaseModelAutoId(SQLModel):
 # Client model -----------------
 class ClientModel(BaseModel, table=True):
     name: str = Field(..., description="Nombre Cliente")
-    # sucursal_id: Optional[int] = Field(
-    #     default=None,
-    #     foreign_key="sucursalmodel.id",
-    #     description="Foreign key a SucursalModel"
-    # )
-    canal_distribucion_id: Optional[str] = Field(
-        foreign_key="canaldistribucionmodel.id"
+    canales_distribucion: List["CanalDistribucionModel"] = Relationship(
+        back_populates="client",
     )
-    canal_distribucion: Optional["CanalDistribucionModel"] = Relationship(
-        back_populates="clients"
+    categorias: List["CategoriaModel"] = Relationship(
+        back_populates="client"
     )
-    categoria_id: Optional[str] = Field(
-        foreign_key="categoriamodel.id",
+    gerentes_regionales: List["GerenteRegionalModel"] = Relationship(
+        back_populates="client",
     )
-    categoria: Optional["CategoriaModel"] = Relationship(
-        back_populates="clients"
+    gerentes_nacionales: List["GerenteNacionalModel"] = Relationship(
+        back_populates="client",
     )
-    # subcanal_adicional_id: Optional[int] = Field(
-    #     default=None,
-    #     foreign_key="subcanaladicionalmodel.id",
-    #     description="Foreign key a SubcanalAdicionalModel"
-    # )
-    # vendedor_id: Optional[int] = Field(
-    #     default=None,
-    #     foreign_key="vendedormodel.id",
-    #     description="Foreign key a VendedorModel"
-    # )
-    # gerente_regional_id: Optional[int] = Field(
-    #     default=None,
-    #     foreign_key="gerenteregionalmodel.id",
-    #     description="Foreign key a GerenteRegionalModel"
-    # )
-    gerente_nacional_id: Optional[str] = Field(
-        foreign_key="gerentenacionalmodel.id",
+    subcanales_adicionales: List["SubcanalAdicionalModel"] = Relationship(
+        back_populates="client",
     )
-    gerente_nacional: Optional["GerenteNacionalModel"] = Relationship(
-        back_populates="clients"
+    sucursales: List["SucursalModel"] = Relationship(
+        back_populates="client",
+    )
+    vendedores: List["VendedorModel"] = Relationship(
+        back_populates="client",
     )
 
 
@@ -318,65 +301,56 @@ class UpdatePDVSchema(SQLModel):
 
 
 # Models for Sucursal API -----------------
-class SucursalModel(BaseModel):
+class SucursalModel(BaseModel, table=True):
     name: str = Field(..., description="Nombre Sucursal")
-
-    clients: List["ClientModel"] = Relationship(
-        back_populates="sucursal",
-        sa_relationship_kwargs={}
-    )
+    client_id: Optional[str] = Field(foreign_key="clientmodel.id")
+    client: Optional["ClientModel"] = Relationship(back_populates="sucursales")
 
 
 # Canal Distribucion model -----------------
 class CanalDistribucionModel(BaseModel, table=True):
     name: str = Field(..., description="Nombre Canal Distribucion")
-    clients: List["ClientModel"] = Relationship(
-        back_populates="canal_distribucion"
-    )
+    client_id: Optional[str] = Field(foreign_key="clientmodel.id")
+    client: Optional["ClientModel"] = Relationship(back_populates="canales_distribucion")
 
 
 # Categoria Model -----------------
 class CategoriaModel(BaseModel, table=True):
     name: str = Field(..., description="Nombre Categoria")
-    clients: List["ClientModel"] = Relationship(
-        back_populates="categoria",
-    )
+    client_id: Optional[str] = Field(foreign_key="clientmodel.id")
+    client: Optional["ClientModel"] = Relationship(back_populates="categorias")
 
 
 # Subcanal Adicional Model -----------------
-class SubcanalAdicionalModel(BaseModel):
+class SubcanalAdicionalModel(BaseModel, table=True):
+    """ Model for Subcanal Adicional
+    """
     name: str = Field(..., description="Nombre Subcanal Adicional")
-    clients: List["ClientModel"] = Relationship(
-        back_populates="subcanal_adicional",
-        sa_relationship_kwargs={}
-    )
+    client_id: Optional[str] = Field(foreign_key="clientmodel.id")
+    client: Optional["ClientModel"] = Relationship(back_populates="subcanales_adicionales")
 
 
 # Vendedor Model -----------------
-class VendedorModel(BaseModel):
+class VendedorModel(BaseModel, table=True):
     name: str = Field(..., description="Nombre Vendedor")
-    clients: List["ClientModel"] = Relationship(
-        back_populates="vendedor",
-        sa_relationship_kwargs={}
-    )
+    client_id: Optional[str] = Field(foreign_key="clientmodel.id")
+    client: Optional["ClientModel"] = Relationship(back_populates="vendedores")
 
 
 # Gerente Regional Model -----------------
-class GerenteRegionalModel(BaseModel):
+class GerenteRegionalModel(BaseModel, table=True):
+    """ Model for Gerente Regional
+    """
     name: str = Field(..., description="Nombre Gerente Regional")
-    clients: List["ClientModel"] = Relationship(
-        back_populates="gerente_regional",
-        sa_relationship_kwargs={}
-    )
+    client_id: Optional[str] = Field(foreign_key="clientmodel.id")
+    client: Optional["ClientModel"] = Relationship(back_populates="gerentes_regionales")
 
 
 # Gerente Nacional Model -----------------
 class GerenteNacionalModel(BaseModel, table=True):
     name: str = Field(..., description="Nombre Gerente Nacional")
-    clients: List["ClientModel"] = Relationship(
-        back_populates="gerente_nacional",
-        sa_relationship_kwargs={}
-    )
+    client_id: Optional[str] = Field(foreign_key="clientmodel.id")
+    client: Optional["ClientModel"] = Relationship(back_populates="gerentes_nacionales")
 
 
 # POIS Model -----------------
