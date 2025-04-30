@@ -30,6 +30,20 @@ def get_clients_dict() -> dict[str, ClientModel]:
     return {str(client.id): client for client in clients}
 
 
+def get_any_model_dict(model_to_get, this_key: str = 'id') -> dict[str, any]:
+    """
+    Devuelve un diccionario de un modelo específico.
+    :param model_to_get: El modelo del cual se quiere obtener los ids.
+    :return: Un diccionario con los ids del modelo.
+    """
+    # Obtener todos los registros del modelo
+    all_records = session.query(model_to_get).all()
+
+    # Crear un diccionario con los ids
+    records_dict = {getattr(record, this_key): record for record in all_records}
+    return records_dict
+
+
 def get_set_of_ids(model_to_get) -> set:
     """
     Devuelve un set de ids de un modelo específico.
@@ -190,7 +204,8 @@ def import_dataset() -> dict:
     ids_canal_distribucion = initial_canal_distribucion.copy()
     initial_categoria = get_set_of_ids(CategoriaModel)
     ids_categoria = initial_categoria.copy()
-    initial_provincia = get_set_of_names(ProvinciaModel)
+    provincias_dict = get_any_model_dict(ProvinciaModel, "name")
+    initial_provincia = set(list(provincias_dict.keys()))
     names_provincia = initial_provincia.copy()
     initial_departamento = get_set_of_names(DepartamentoModel)
     names_departamento = initial_departamento.copy()
@@ -265,16 +280,21 @@ def import_dataset() -> dict:
             ids_categoria.add(str(row["id_cli_categoria_dist"]))
 
         # Provincia --------------------------------------
-        new_provincia = process_just_name(
-            row,
-            name_key="pv_pcia",
-            names_set=names_provincia,
-            model_class=ProvinciaModel,
-        )
-        if new_provincia:
-            # En el caso de provincia lo grabo ahora ya que necesito vincularlo a departamento
-            session.add(new_provincia)
-            session.commit()
+        provincia_name = row["pv_pcia"]
+        if provincia_name not in names_provincia:
+            new_provincia = process_just_name(
+                row,
+                name_key="pv_pcia",
+                names_set=names_provincia,
+                model_class=ProvinciaModel,
+            )
+            if new_provincia:
+                # En el caso de provincia lo grabo ahora ya que necesito vincularlo a departamento
+                session.add(new_provincia)
+                session.commit()
+                provincias_dict[provincia_name] = new_provincia
+        else:
+            new_provincia = provincias_dict[provincia_name]
 
         # Departamento --------------------------------------
         departamento_name = row["pv_departamento"]
