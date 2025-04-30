@@ -19,20 +19,20 @@ Columns:
 (ok) id_tie_fecha_alta
 (ok) pv_x
 (ok) pv_y
-*(ok) id_cli_canal_dist
+* (ok) id_cli_canal_dist
 * (ok) desc_cli_canal_dist
 * (ok) id_cli_categoria_dist
 (ok) id_cli_subcanal_adic_dist
 (ok) desc_cli_subcanal_dist
-(ok) pv_pcia
-(ok) pv_departamento
+* (ok) pv_pcia
+* (ok) pv_departamento
 (ok) geohash
 (ok) id_cli_vendedor
 (ok) desc_cli_vendedor
 (ok) id_cli_gte_regional
 (ok) desc_cli_gte_regional
-(ok) id_cli_gte_nacional
-(ok) desc_cli_gte_nacional
+* (ok) id_cli_gte_nacional
+* (ok) desc_cli_gte_nacional
 (ok) indicar_cantidad_de_bandejas
 (ok) indique_la_cantidad_de_m2_de_la_tienda
 (ok) indique_la_cantidad_de_pasillos
@@ -98,6 +98,26 @@ class BaseModel(SQLModel):
     )
 
 
+class BaseModelAutoId(SQLModel):
+    id: int = Field(
+        primary_key=True,
+        index=True,
+        description="ID",
+    )
+    created_at: datetime = Field(
+        default_factory=get_utc_now,
+        sa_type=DateTime(timezone=True),
+        description="Creation timestamp",
+        nullable=False,
+    )
+    updated_at: datetime = Field(
+        default_factory=get_utc_now,
+        sa_type=DateTime(timezone=True),
+        description="Update timestamp",
+        nullable=False,
+    )
+
+
 # Client model -----------------
 class ClientModel(BaseModel, table=True):
     name: str = Field(..., description="Nombre Cliente")
@@ -142,10 +162,10 @@ class ClientModel(BaseModel, table=True):
 
 
 # Departamentos Model -----------------
-class DepartamentoModel(BaseModel, table=True):
+class DepartamentoModel(BaseModelAutoId, table=True):
     """ Model for Departamentos"""
     name: str = Field(..., description="Nombre Departamento")
-    provincia_id: Optional[str] = Field(
+    provincia_id: Optional[int] = Field(
         foreign_key="provinciamodel.id",
     )
     provincia: Optional["ProvinciaModel"] = Relationship(
@@ -154,7 +174,7 @@ class DepartamentoModel(BaseModel, table=True):
 
 
 # Provincias Model -----------------
-class ProvinciaModel(BaseModel, table=True):
+class ProvinciaModel(BaseModelAutoId, table=True):
     """ Model for Provincias
     """
     name: str = Field(..., description="Nombre Provincia")

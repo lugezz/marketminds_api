@@ -12,7 +12,7 @@ from api.marketminds.models import (
     # PDVModel,
     # POIModel,
     # POISTypeModel,
-    # ProvinciaModel,
+    ProvinciaModel,
     # SubcanalAdicionalModel,
     # SucursalModel,
     # VendedorModel,
@@ -35,6 +35,20 @@ def get_set_of_ids(model_to_get) -> set:
     # Crear un set con los ids
     ids = {record.id for record in all_records}
     return ids
+
+
+def get_set_of_names(model_to_get) -> set:
+    """
+    Devuelve un set de names de un modelo específico.
+    :param model_to_get: El modelo del cual se quiere obtener los names.
+    :return: Un set con los names del modelo.
+    """
+    # Obtener todos los registros del modelo
+    all_records = session.query(model_to_get).all()
+
+    # Crear un set con los ids
+    names = {record.name for record in all_records}
+    return names
 
 
 def process_any_id_name_pair(row, id_key: str, name_key: str, ids_set: set, model_class):
@@ -67,6 +81,32 @@ def process_any_id_name_pair(row, id_key: str, name_key: str, ids_set: set, mode
     return this_registro
 
 
+def process_just_name(row, name_key: str, names_set: set, model_class):
+    """
+    Procesa un registro de un modelo que sólo tiene un nombre. (id es autonumérico)
+    :param row: La fila del DataFrame.
+    :param name_key: La clave del nombre en el DataFrame.
+    :param model_class: La clase del modelo a procesar.
+    :return: None si no crea o registro creado
+    """
+    if name_key == "(Sin nombre)":
+        name_value = name_key
+    else:
+        name_value = row[name_key]
+
+    this_registro = None
+    if (
+        name_value not in names_set or
+        pd.isna(name_value)
+    ):
+        # Sólo agregar si nombre si no es nulo y no está en el set
+        this_registro = model_class(
+            name=name_value,
+        )
+
+    return this_registro
+
+
 def import_dataset() -> dict:
     # Toma el archivo de import (api/datasets/mdt_negocio_import.csv), lo convierte a un dataframe
     # y lo va procesando en los modelos de la base de datos.
@@ -82,15 +122,18 @@ def import_dataset() -> dict:
     # Crear una sesión de base de datos
     models_to_import = []
 
-    # Sets de ids para evitar duplicados
+    # Sets de ids para evitar duplicados -------------------------------------------------
     initial_canal_distribucion = get_set_of_ids(CanalDistribucionModel)
     ids_canal_distribucion = initial_canal_distribucion.copy()
     initial_categoria = get_set_of_ids(CategoriaModel)
     ids_categoria = initial_categoria.copy()
-    initial_departamento = get_set_of_ids(DepartamentoModel)
-    ids_departamento = initial_departamento.copy()
+    initial_provincia = get_set_of_names(ProvinciaModel)
+    names_provincia = initial_provincia.copy()
+    initial_departamento = get_set_of_names(DepartamentoModel)
+    names_departamento = initial_departamento.copy()
     initial_gerente_nacional = get_set_of_ids(GerenteNacionalModel)
     ids_gerente_nacional = initial_gerente_nacional.copy()
+    # -------------------------------------------------------------------------------------
 
     # Procesar cada fila del DataFrame
     for index, row in df.iterrows():
@@ -122,6 +165,17 @@ def import_dataset() -> dict:
         if new_categoria:
             models_to_import.append(new_categoria)
             ids_categoria.add(str(new_categoria.id))
+
+        # Provincia --------------------------------------
+        new_provincia = process_just_name(
+            row,
+            name_key="pv_pcia",
+            names_set=names_provincia,
+            model_class=ProvinciaModel,
+        )
+        if new_provincia:
+            models_to_import.append(new_provincia)
+            names_provincia.add(str(new_provincia.name))
 
         # Departamento --------------------------------------
         # new_departamento = process_any_id_name_pair(
@@ -188,13 +242,13 @@ def import_dataset() -> dict:
     resp['registros_added'] = {
         "canal_distribucion": len(ids_canal_distribucion) - len(initial_canal_distribucion),
         "categoria": len(ids_categoria) - len(initial_categoria),
-        "departamento": len(ids_departamento) - len(initial_departamento),
+        "provincia": len(names_provincia) - len(initial_provincia),
+        "departamento": len(names_departamento) - len(initial_departamento),
         "gerente_nacional": len(ids_gerente_nacional) - len(initial_gerente_nacional),
         # "gerente_regional": len(ids_gerente_regional),
         # "pdv": len(ids_pdv),
         # "poi_type": len(ids_poi_type),
         # "poi": len(ids_poi),
-        # "provincia": len(ids_provincia),
         # "subcanal_adicional": len(ids_subcanal_adicional),
         # "sucursal": len(ids_sucursal),
         # "vendedor": len(ids_vendedor),
