@@ -72,6 +72,19 @@ def get_set_of_names(model_to_get) -> set:
     return names
 
 
+def get_set_of_departamentos_names() -> set:
+    """
+    Devuelve un set de names de departamento
+    :return: Un set con "provincia_id - name" de departamentos.
+    """
+    # Obtener todos los registros del modelo
+    all_records = session.query(Departamento).all()
+
+    # Crear un set con los ids
+    names = {f"{record.provincia_id} - {record.name}" for record in all_records}
+    return names
+
+
 def process_any_id_name_pair(row, id_key: str, name_key: str, ids_set: set, model_class):
     """
     Procesa un par de id y nombre de cualquier modelo.
@@ -284,7 +297,8 @@ def import_dataset() -> dict:
 
         # Departamento --------------------------------------
         departamento_name = row["pv_departamento"]
-        if departamento_name not in names_departamento:
+        prov_departamento_name = f"{new_provincia.id} - {departamento_name}"
+        if prov_departamento_name not in names_departamento:
             new_departamento = process_related_names(
                 row,
                 name_key="pv_departamento",
@@ -296,7 +310,7 @@ def import_dataset() -> dict:
             )
             if new_departamento:
                 models_to_import.append(new_departamento)
-                names_departamento.add(departamento_name)
+                names_departamento.add(prov_departamento_name)
 
         # Gerente Nacional --------------------------------
         new_gerente_nacional = process_any_id_name_pair(

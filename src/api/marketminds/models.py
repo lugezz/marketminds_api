@@ -149,7 +149,7 @@ class Departamento(BaseModelAutoId, table=True):
     """ Model for Departamentos"""
     name: str = Field(..., description="Nombre Departamento")
     provincia_id: Optional[int] = Field(
-        foreign_key="Provincia.id",
+        foreign_key="provincia.id",
     )
     provincia: Optional["Provincia"] = Relationship(
         back_populates="departamentos",
@@ -303,21 +303,21 @@ class UpdatePDVSchema(SQLModel):
 # Models for Sucursal API -----------------
 class Sucursal(BaseModel, table=True):
     name: str = Field(..., description="Nombre Sucursal")
-    client_id: Optional[str] = Field(foreign_key="Client.id")
+    client_id: Optional[str] = Field(foreign_key="client.id")
     client: Optional["Client"] = Relationship(back_populates="sucursales")
 
 
 # Canal Distribucion model -----------------
 class CanalDistribucion(BaseModel, table=True):
     name: str = Field(..., description="Nombre Canal Distribucion")
-    client_id: Optional[str] = Field(foreign_key="Client.id")
+    client_id: Optional[str] = Field(foreign_key="client.id")
     client: Optional["Client"] = Relationship(back_populates="canales_distribucion")
 
 
 # Categoria Model -----------------
 class Categoria(BaseModel, table=True):
     name: str = Field(..., description="Nombre Categoria")
-    client_id: Optional[str] = Field(foreign_key="Client.id")
+    client_id: Optional[str] = Field(foreign_key="client.id")
     client: Optional["Client"] = Relationship(back_populates="categorias")
 
 
@@ -326,14 +326,14 @@ class SubcanalAdicional(BaseModel, table=True):
     """ Model for Subcanal Adicional
     """
     name: str = Field(..., description="Nombre Subcanal Adicional")
-    client_id: Optional[str] = Field(foreign_key="Client.id")
+    client_id: Optional[str] = Field(foreign_key="client.id")
     client: Optional["Client"] = Relationship(back_populates="subcanales_adicionales")
 
 
 # Vendedor Model -----------------
 class Vendedor(BaseModel, table=True):
     name: str = Field(..., description="Nombre Vendedor")
-    client_id: Optional[str] = Field(foreign_key="Client.id")
+    client_id: Optional[str] = Field(foreign_key="client.id")
     client: Optional["Client"] = Relationship(back_populates="vendedores")
 
 
@@ -342,14 +342,14 @@ class GerenteRegional(BaseModel, table=True):
     """ Model for Gerente Regional
     """
     name: str = Field(..., description="Nombre Gerente Regional")
-    client_id: Optional[str] = Field(foreign_key="Client.id")
+    client_id: Optional[str] = Field(foreign_key="client.id")
     client: Optional["Client"] = Relationship(back_populates="gerentes_regionales")
 
 
 # Gerente Nacional Model -----------------
 class GerenteNacional(BaseModel, table=True):
     name: str = Field(..., description="Nombre Gerente Nacional")
-    client_id: Optional[str] = Field(foreign_key="Client.id")
+    client_id: Optional[str] = Field(foreign_key="client.id")
     client: Optional["Client"] = Relationship(back_populates="gerentes_nacionales")
 
 
