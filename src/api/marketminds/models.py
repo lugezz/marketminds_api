@@ -12,13 +12,13 @@ def get_utc_now():
 
 """
 Columns:
-(ok) id_pdv_unique
+* (ok) id_pdv_unique
 * (ok) id_cli_suc_cuenta
-(ok) id_cod_pdv
+* (ok) id_cod_pdv
 * (ok) desc_cli_suc_cuenta
-(ok) id_tie_fecha_alta
-(ok) pv_x
-(ok) pv_y
+* (ok) id_tie_fecha_alta
+* (ok) pv_x
+* (ok) pv_y
 * (ok) id_cli_canal_dist
 * (ok) desc_cli_canal_dist
 * (ok) id_cli_categoria_dist
@@ -26,18 +26,18 @@ Columns:
 * (ok) desc_cli_subcanal_dist
 * (ok) pv_pcia
 * (ok) pv_departamento
-(ok) geohash
+* (ok) geohash
 * (ok) id_cli_vendedor
 * (ok) desc_cli_vendedor
 * (ok) id_cli_gte_regional
 * (ok) desc_cli_gte_regional
 * (ok) id_cli_gte_nacional
 * (ok) desc_cli_gte_nacional
-(ok) indicar_cantidad_de_bandejas
-(ok) indique_la_cantidad_de_m2_de_la_tienda
-(ok) indique_la_cantidad_de_pasillos
-(ok) indique_la_cantidad_de_puertas_de_heladeras
-(ok)
+* (ok) indicar_cantidad_de_bandejas
+* (ok) indique_la_cantidad_de_m2_de_la_tienda
+* (ok) indique_la_cantidad_de_pasillos
+* (ok) indique_la_cantidad_de_puertas_de_heladeras
+* (ok)
     indique_la_cantidad_de_puntos_de_cobro_cajas_del_pdv
     se_puede_ingresar_al_interior_del_local
     compra_en_plataformas_web_ej_bees_compre_ahora_coca_tokin
@@ -133,6 +133,9 @@ class Client(BaseModel, table=True):
     gerentes_nacionales: List["GerenteNacional"] = Relationship(
         back_populates="client",
     )
+    pdvs: List["PDV"] = Relationship(
+        back_populates="client",
+    )
     subcanales_adicionales: List["SubcanalAdicional"] = Relationship(
         back_populates="client",
     )
@@ -167,9 +170,8 @@ class Provincia(BaseModelAutoId, table=True):
 
 
 # Models for PDV API -----------------
-class PDV(BaseModel):
+class PDV(BaseModel, table=True):
     cod_pdv: str = Field(..., description="Código PDV")
-    name: str = Field(..., description="Nombre PDV")
     fecha_alta: Optional[datetime] = Field(
         default=None,
         sa_type=DateTime(timezone=True),
@@ -178,24 +180,16 @@ class PDV(BaseModel):
     )
     lat: float = Field(..., description="PDV latitud")
     lon: float = Field(..., description="PDV longitud")
-    departamento_id: Optional[int] = Field(
-        default=None,
-        foreign_key="Departamento.id",
-        description="Foreign key a Departamento"
-    )
-    pois: List["POI"] = Relationship(
-        back_populates="pdv",
-        sa_relationship_kwargs={"description": "Lista de POIs en este PDV"}
-    )
+    pois: List["POI"] = Relationship(back_populates="pdv")
     geohash: str = Field(..., description="Geohash del PDV")
-    bandejas: Optional[int] = Field(default=None, description="Número de bandejas")
-    m2: Optional[int] = Field(default=None, description="Número de m2")
-    pasillos: Optional[int] = Field(default=None, description="Número de pasillos")
-    puertas_heladeras: Optional[int] = Field(
+    bandejas: Optional[str] = Field(default=None, description="Número de bandejas")
+    m2: Optional[str] = Field(default=None, description="Número de m2")
+    pasillos: Optional[str] = Field(default=None, description="Número de pasillos")
+    puertas_heladeras: Optional[str] = Field(
         default=None,
         description="Número de puertas de heladeras"
     )
-    puntos_cobro: Optional[int] = Field(
+    puntos_cobro: Optional[str] = Field(
         default=None,
         description="Número de puntos de cobro (cajas)"
     )
@@ -218,6 +212,10 @@ class PDV(BaseModel):
     cuenta_con_medios_cobro_digital: Optional[bool] = Field(
         default=None,
         description="Cuenta con medios de cobro digital o electronico (ej: Posnet, apps de pago QR)"
+    )
+    otros_servicios: Optional[bool] = Field(
+        default=None,
+        description="Cuenta con otros servicios (ej: tarjeta colectivos, carga celular, cospeles, rapipago, pago facil)"
     )
     ubicacion: Optional[str] = Field(
         default=None,
@@ -255,7 +253,7 @@ class PDV(BaseModel):
         default=False,
         description="Ofrece viandas (ej: menues, tartas, sandwiches, ensaladas)"
     )
-    freezer: Optional[bool] = Field(
+    freezer: Optional[str] = Field(
         default=False,
         description="Tiene freezer"
     )
@@ -271,6 +269,8 @@ class PDV(BaseModel):
         default=False,
         description="Trabaja los eventos tematicos (navidad, pascuas, halloween, seleccion argentina)"
     )
+    client_id: Optional[str] = Field(foreign_key="client.id")
+    client: Optional["Client"] = Relationship(back_populates="pdvs")
 
 
 class CreatePDVSchema(SQLModel):
@@ -354,23 +354,18 @@ class GerenteNacional(BaseModel, table=True):
 
 
 # POIS Model -----------------
-class POISType(BaseModel):
+class POISType(BaseModel, table=True):
+    """ Model for POIS
+    """
     name: str = Field(..., description="Nombre POI")
-    pois: List["POI"] = Relationship(
-        back_populates="pois_type",
-        sa_relationship_kwargs={}
-    )
+    pois: List["POI"] = Relationship(back_populates="pois_type")
 
 
-class POI(BaseModel):
+class POI(BaseModel, table=True):
+    """ Model for POI
+    """
     name: str = Field(..., description="Nombre POI")
-    pois_type_id: Optional[int] = Field(
-        default=None,
-        foreign_key="POISType.id",
-        description="Foreign key a POISType"
-    )
-    pdv_id: Optional[int] = Field(
-        default=None,
-        foreign_key="PDV.id",
-        description="Foreign key a PDV"
-    )
+    pois_type_id: Optional[str] = Field(foreign_key="poistype.id")
+    pois_type: Optional["POISType"] = Relationship(back_populates="pois")
+    pdv_id: Optional[str] = Field(foreign_key="pdv.id")
+    pdv: Optional["PDV"] = Relationship(back_populates="pois")

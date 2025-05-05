@@ -11,7 +11,7 @@ from api.marketminds.models import (
     Departamento,
     GerenteNacional,
     GerenteRegional,
-    # PDV,
+    PDV,
     # POI,
     # POISType,
     Provincia,
@@ -19,10 +19,70 @@ from api.marketminds.models import (
     Sucursal,
     Vendedor,
 )
+from api.helpers.tools import get_datetime_from_str, si_no_a_bool
 
 logger = logging.getLogger(__name__)
-
 session = next(get_session())
+
+pdv_keys_dict = {
+    'id': {'name': 'id_pdv_unique'},
+    'cod_pdv': {'name': 'id_cod_pdv'},
+    'fecha_alta': {'name': 'id_tie_fecha_alta'},
+    'lat': {'name': 'pv_y'},
+    'lon': {'name': 'pv_x'},
+    'geohash': {'name': 'geohash'},
+    'bandejas': {'name': 'indicar_cantidad_de_bandejas'},
+    'm2': {'name': 'indique_la_cantidad_de_m2_de_la_tienda'},
+    'pasillos': {'name': 'indique_la_cantidad_de_pasillos'},
+    'puertas_heladeras': {'name': 'indique_la_cantidad_de_puertas_de_heladeras'},
+    'puntos_cobro': {'name': 'indique_la_cantidad_de_puntos_de_cobro_cajas_del_pdv'},
+    'tiene_ingreso': {'name': 'se_puede_ingresar_al_interior_del_local', 'type': 'bool'},
+    'compra_en_plataformas': {
+        'name': 'compra_en_plataformas_web_ej_bees_compre_ahora_coca_tokin',
+        'type': 'bool',
+    },
+    'cuenta_con_apps_delivery': {
+        'name': 'cuenta_con_apps_de_delivery_ej_pedidos_ya_rappi_propia',
+        'type': 'bool',
+    },
+    'cuenta_con_deposito': {
+        'name': 'cuenta_con_deposito_de_mercaderia',
+        'type': 'bool',
+    },
+    'cuenta_con_medios_cobro_digital': {
+        'name': 'cuenta_con_medios_de_cobro_digital_o_electronico_ej_posnet_apps_de_pago_qr',
+        'type': 'bool',
+    },
+    'otros_servicios': {
+        'name': 'cuenta_con_otros_servicios_ej_tarjeta_colectivos_carga_celular_cospeles_rapipago_pago_facil',
+        'type': 'bool',
+    },
+    'ubicacion': {'name': 'donde_se_encuentra_ubicado'},
+    'abierto_24h': {'name': 'la_tienda_se_encuentra_abierta_las_24_hs_del_dia', 'type': 'bool'},
+    'abierto_7d': {'name': 'la_tienda_se_encuentra_abierta_los_7_dias_de_la_semana', 'type': 'bool'},
+    'bebidas_alcoholicas': {'name': 'ofrece_bebidas_alcoholicas', 'type': 'bool'},
+    'medicamentos_venta_libre': {
+        'name': 'ofrece_medicamentos_de_venta_libre_ej_ibuprofeno_sertal_otros',
+        'type': 'bool'
+    },
+    'cuidados_personales': {
+        'name': 'ofrece_producto_de_cuidado_personal_ej_shampoo_maquinita_de_afeitar_toallitas_femeninas',
+        'type': 'bool'
+    },
+    'productos_lacteos': {'name': 'ofrece_productos_lacteos', 'type': 'bool'},
+    'productos_varios': {'name': 'ofrece_productos_varios_ej_pilas_encendedroes_preservativos', 'type': 'bool'},
+    'viandas': {'name': 'ofrece_viandas_ej_menues_tartas_sandwiches_ensaladas', 'type': 'bool'},
+    'freezer': {'name': 'tiene_freezer_cual_es'},
+    'imagen_frente': {'name': 'tiene_imagen_en_el_frente_del_local', 'type': 'bool'},
+    'presencia_redes_sociales': {
+        'name': 'tiene_presencia_en_redes_sociales_ej_instagram_facebook_tik_tok',
+        'type': 'bool'
+    },
+    'eventos_tematicos': {
+        'name': 'trabaja_los_eventos_tematicos_navidad_pascuas_halloween_seleccion_argentina',
+        'type': 'bool'
+    },
+}
 
 
 def get_clients_dict() -> dict[str, Client]:
@@ -44,7 +104,7 @@ def get_any_model_dict(model_to_get, this_key: str = 'id') -> dict[str, any]:
     return records_dict
 
 
-def get_set_of_ids(model_to_get) -> set:
+def get_set_of_ids(model_to_get, this_key: str = 'id') -> set:
     """
     Devuelve un set de ids de un modelo específico.
     :param model_to_get: El modelo del cual se quiere obtener los ids.
@@ -54,7 +114,7 @@ def get_set_of_ids(model_to_get) -> set:
     all_records = session.query(model_to_get).all()
 
     # Crear un set con los ids
-    ids = {record.id for record in all_records}
+    ids = {getattr(record, this_key) for record in all_records}
     return ids
 
 
@@ -205,6 +265,45 @@ def process_base_model(
     return new_record
 
 
+def process_pdv(
+    row,
+    ids_set: set,
+    this_client,
+    models_to_import: list,
+):
+    if str(row['id_pdv_unique']) in ids_set:
+        # Si el pdv ya existe, no lo creo
+        return None
+
+    pdv_data = {
+        'client_id': this_client.id,
+        'client': this_client,
+    }
+
+    for key, value in pdv_keys_dict.items():
+        dataset_key = value['name']
+
+        if dataset_key in row:
+            if value.get('type') == 'bool':
+                pdv_data[key] = si_no_a_bool(row[dataset_key])
+            elif value.get('type') == 'int':
+                pdv_data[key] = int(row[dataset_key]) if not pd.isna(row[dataset_key]) else 0
+            else:
+                pdv_data[key] = str(row[dataset_key])
+        else:
+            pdv_data[key] = None
+
+    # Limpieza algunos campos
+    pdv_data['fecha_alta'] = get_datetime_from_str(pdv_data['fecha_alta'])
+
+    # Creo el pdv
+    new_pdv = PDV(**pdv_data)
+    models_to_import.append(new_pdv)
+    ids_set.add(str(row['id_pdv_unique']))
+
+    return new_pdv
+
+
 def process_provincia_departamento(
     row,
     models_to_import: list,
@@ -294,6 +393,9 @@ def import_dataset() -> dict:
     ids_subcanal_adicional = initial_subcanal_adicional.copy()
     initial_vendedor = get_set_of_ids(Vendedor)
     ids_vendedor = initial_vendedor.copy()
+    initial_pdv = get_set_of_ids(PDV)
+    ids_pdv = initial_pdv.copy()
+
     # -------------------------------------------------------------------------------------
 
     # Procesar cada fila del DataFrame
@@ -411,18 +513,13 @@ def import_dataset() -> dict:
             models_to_import=models_to_import,
         )
 
-        # pdv = PDV(
-        #     id=row["pdv_id"],
-        #     nombre=row["pdv_nombre"],
-        # )
-        # poi_type = POISType(
-        #     id=row["poi_type_id"],
-        #     nombre=row["poi_type_nombre"],
-        # )
-        # poi = POI(
-        #     id=row["poi_id"],
-        #     nombre=row["poi_nombre"],
-        # )
+        # PDV ------------------------------------------------
+        process_pdv(
+            row=row,
+            ids_set=ids_pdv,
+            this_client=this_cliente,
+            models_to_import=models_to_import,
+        )
 
     # Agregar las instancias a la sesión
     session.add_all(models_to_import)
@@ -436,7 +533,7 @@ def import_dataset() -> dict:
         "departamento": len(names_departamento) - len(initial_departamento),
         "gerente_nacional": len(ids_gerente_nacional) - len(initial_gerente_nacional),
         "gerente_regional": len(ids_gerente_regional) - len(initial_gerente_regional),
-        # "pdv": len(ids_pdv),
+        "pdv": len(ids_pdv) - len(initial_pdv),
         # "poi_type": len(ids_poi_type),
         # "poi": len(ids_poi),
         "subcanal_adicional": len(ids_subcanal_adicional) - len(initial_subcanal_adicional),
