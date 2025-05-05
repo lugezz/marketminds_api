@@ -5,19 +5,19 @@ from sqlmodel import select
 
 from api.db.session import get_session
 from api.marketminds.models import (
-    CanalDistribucionModel,
-    CategoriaModel,
-    ClientModel,
-    DepartamentoModel,
-    GerenteNacionalModel,
-    GerenteRegionalModel,
-    # PDVModel,
-    # POIModel,
-    # POISTypeModel,
-    ProvinciaModel,
-    SubcanalAdicionalModel,
-    SucursalModel,
-    VendedorModel,
+    CanalDistribucion,
+    Categoria,
+    Client,
+    Departamento,
+    GerenteNacional,
+    GerenteRegional,
+    # PDV,
+    # POI,
+    # POISType,
+    Provincia,
+    SubcanalAdicional,
+    Sucursal,
+    Vendedor,
 )
 
 logger = logging.getLogger(__name__)
@@ -25,8 +25,8 @@ logger = logging.getLogger(__name__)
 session = next(get_session())
 
 
-def get_clients_dict() -> dict[str, ClientModel]:
-    clients = session.exec(select(ClientModel)).all()
+def get_clients_dict() -> dict[str, Client]:
+    clients = session.exec(select(Client)).all()
     return {str(client.id): client for client in clients}
 
 
@@ -131,21 +131,20 @@ def process_just_name(row, name_key: str, names_set: set, model_class):
 def process_related_names(
     row,
     name_key: str,
-    related_name: str,
     names_set: set,
     model_class,
-    model_class_related,
-    id_related_field: str,
-    instance_related: str,
+    instance_related,
+    related_key: str,
+    related_instance: str,
 ):
     """
     Procesa un registro de un modelo que sólo tiene un nombre relacionado con otro modelo, a buscar por name.
     :param row: La fila del DataFrame.
     :param name_key: La clave del nombre en el DataFrame.
-    :param related_name: La clave del nombre relacionado en el DataFrame.
     :param model_class: La clase del modelo a procesar.
     :param model_class_related: La clase del modelo relacionado a procesar.
     :return: None si no crea o registro creado
+    :param related_name: El nombre del campo relacionado en el modelo.
     """
     if name_key == "(Sin nombre)":
         name_value = name_key
@@ -157,25 +156,11 @@ def process_related_names(
         name_value not in names_set or
         pd.isna(name_value)
     ):
-        related_name_value = row[related_name]
-        related_registro = session.query(
-            model_class_related
-        ).filter(
-            model_class_related.name == related_name_value
-        ).first()
-        if related_registro is None:
-            # Si no existe el registro relacionado, lo creo
-            related_registro = model_class_related(
-                name=related_name_value,
-            )
-            session.add(related_registro)
-            session.commit()
-        # Sólo agregar si nombre si no es nulo y no está en el set
         new_registro_params = {
-            id_related_field: related_registro.id,
-            instance_related: related_registro,
+            'name': name_value,
+            related_key: instance_related.id,
+            related_instance: instance_related,
         }
-        new_registro_params['name'] = name_value
         this_registro = model_class(**new_registro_params)
 
     return this_registro
@@ -200,24 +185,24 @@ def import_dataset() -> dict:
     clients_dict = get_clients_dict()
     initial_client = set(list(clients_dict.keys()))
     ids_client = initial_client.copy()
-    initial_canal_distribucion = get_set_of_ids(CanalDistribucionModel)
+    initial_canal_distribucion = get_set_of_ids(CanalDistribucion)
     ids_canal_distribucion = initial_canal_distribucion.copy()
-    initial_categoria = get_set_of_ids(CategoriaModel)
+    initial_categoria = get_set_of_ids(Categoria)
     ids_categoria = initial_categoria.copy()
-    provincias_dict = get_any_model_dict(ProvinciaModel, "name")
+    provincias_dict = get_any_model_dict(Provincia, "name")
     initial_provincia = set(list(provincias_dict.keys()))
     names_provincia = initial_provincia.copy()
-    initial_departamento = get_set_of_names(DepartamentoModel)
+    initial_departamento = get_set_of_names(Departamento)
     names_departamento = initial_departamento.copy()
-    initial_gerente_nacional = get_set_of_ids(GerenteNacionalModel)
+    initial_gerente_nacional = get_set_of_ids(GerenteNacional)
     ids_gerente_nacional = initial_gerente_nacional.copy()
-    initial_gerente_regional = get_set_of_ids(GerenteRegionalModel)
+    initial_gerente_regional = get_set_of_ids(GerenteRegional)
     ids_gerente_regional = initial_gerente_regional.copy()
-    initial_sucursal = get_set_of_ids(SucursalModel)
+    initial_sucursal = get_set_of_ids(Sucursal)
     ids_sucursal = initial_sucursal.copy()
-    initial_subcanal_adicional = get_set_of_ids(SubcanalAdicionalModel)
+    initial_subcanal_adicional = get_set_of_ids(SubcanalAdicional)
     ids_subcanal_adicional = initial_subcanal_adicional.copy()
-    initial_vendedor = get_set_of_ids(VendedorModel)
+    initial_vendedor = get_set_of_ids(Vendedor)
     ids_vendedor = initial_vendedor.copy()
     # -------------------------------------------------------------------------------------
 
@@ -227,7 +212,7 @@ def import_dataset() -> dict:
             # Skip the first row if it contains headers or unwanted data
             continue
         # Crear instancias de los modelos y asignar valores ------------------------------------
-        # ClientModel -------------------------------------------------------------
+        # Client -------------------------------------------------------------
         # Por ahora tomo a cliente como id_cli_suc_cuenta y desc_cli_suc_cuenta
         # A futuro definir como mejorar si un cliente tiene sucursales
         # Id = -1 para clientes no identificados
@@ -238,7 +223,7 @@ def import_dataset() -> dict:
                 id_key="id_cli_suc_cuenta",
                 name_key="desc_cli_suc_cuenta",
                 ids_set=ids_client,
-                model_class=ClientModel
+                model_class=Client
             )
             if new_client:
                 models_to_import.append(new_client)
@@ -248,15 +233,15 @@ def import_dataset() -> dict:
         else:
             this_cliente = clients_dict[this_cliente_id]
 
-        # Fin ClientModel -------------------------------------------------------------
+        # Fin Client -------------------------------------------------------------
 
-        # CanalDistribucionModel -----------------------------
+        # CanalDistribucion -----------------------------
         new_canal = process_any_id_name_pair(
             row,
             id_key="id_cli_canal_dist",
             name_key="desc_cli_canal_dist",
             ids_set=ids_canal_distribucion,
-            model_class=CanalDistribucionModel,
+            model_class=CanalDistribucion,
         )
 
         if new_canal:
@@ -271,7 +256,7 @@ def import_dataset() -> dict:
             id_key="id_cli_categoria_dist",
             name_key="(Sin nombre)",
             ids_set=ids_categoria,
-            model_class=CategoriaModel,
+            model_class=Categoria,
         )
         if new_categoria:
             new_categoria.client_id = this_cliente_id
@@ -286,13 +271,14 @@ def import_dataset() -> dict:
                 row,
                 name_key="pv_pcia",
                 names_set=names_provincia,
-                model_class=ProvinciaModel,
+                model_class=Provincia,
             )
             if new_provincia:
                 # En el caso de provincia lo grabo ahora ya que necesito vincularlo a departamento
                 session.add(new_provincia)
                 session.commit()
                 provincias_dict[provincia_name] = new_provincia
+                names_provincia.add(provincia_name)
         else:
             new_provincia = provincias_dict[provincia_name]
 
@@ -302,12 +288,11 @@ def import_dataset() -> dict:
             new_departamento = process_related_names(
                 row,
                 name_key="pv_departamento",
-                related_name="pv_pcia",
                 names_set=names_departamento,
-                model_class=DepartamentoModel,
-                model_class_related=ProvinciaModel,
-                id_related_field="provincia_id",
-                instance_related="provincia",
+                model_class=Departamento,
+                instance_related=new_provincia,
+                related_key="provincia_id",
+                related_instance="provincia",
             )
             if new_departamento:
                 models_to_import.append(new_departamento)
@@ -319,7 +304,7 @@ def import_dataset() -> dict:
             id_key="id_cli_gte_nacional",
             name_key="desc_cli_gte_nacional",
             ids_set=ids_gerente_nacional,
-            model_class=GerenteNacionalModel,
+            model_class=GerenteNacional,
         )
         if new_gerente_nacional:
             new_gerente_nacional.client_id = this_cliente_id
@@ -333,7 +318,7 @@ def import_dataset() -> dict:
             id_key="id_cli_gte_regional",
             name_key="desc_cli_gte_regional",
             ids_set=ids_gerente_regional,
-            model_class=GerenteRegionalModel,
+            model_class=GerenteRegional,
         )
         if new_gerente_regional:
             new_gerente_regional.client_id = this_cliente_id
@@ -347,7 +332,7 @@ def import_dataset() -> dict:
             id_key="id_cli_suc_cuenta",
             name_key="desc_cli_suc_cuenta",
             ids_set=ids_sucursal,
-            model_class=SucursalModel,
+            model_class=Sucursal,
         )
         if new_sucursal:
             new_sucursal.client_id = this_cliente_id
@@ -361,7 +346,7 @@ def import_dataset() -> dict:
             id_key="id_cli_subcanal_adic_dist",
             name_key="desc_cli_subcanal_dist",
             ids_set=ids_subcanal_adicional,
-            model_class=SubcanalAdicionalModel,
+            model_class=SubcanalAdicional,
         )
         if new_subcanal_adicional:
             new_subcanal_adicional.client_id = this_cliente_id
@@ -375,7 +360,7 @@ def import_dataset() -> dict:
             id_key="id_cli_vendedor",
             name_key="desc_cli_vendedor",
             ids_set=ids_vendedor,
-            model_class=VendedorModel,
+            model_class=Vendedor,
         )
         if new_vendedor:
             new_vendedor.client_id = this_cliente_id
@@ -383,15 +368,15 @@ def import_dataset() -> dict:
             models_to_import.append(new_vendedor)
             ids_vendedor.add(str(row["id_cli_vendedor"]))
 
-        # pdv = PDVModel(
+        # pdv = PDV(
         #     id=row["pdv_id"],
         #     nombre=row["pdv_nombre"],
         # )
-        # poi_type = POISTypeModel(
+        # poi_type = POISType(
         #     id=row["poi_type_id"],
         #     nombre=row["poi_type_nombre"],
         # )
-        # poi = POIModel(
+        # poi = POI(
         #     id=row["poi_id"],
         #     nombre=row["poi_nombre"],
         # )

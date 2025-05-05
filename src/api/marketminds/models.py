@@ -119,55 +119,55 @@ class BaseModelAutoId(SQLModel):
 
 
 # Client model -----------------
-class ClientModel(BaseModel, table=True):
+class Client(BaseModel, table=True):
     name: str = Field(..., description="Nombre Cliente")
-    canales_distribucion: List["CanalDistribucionModel"] = Relationship(
+    canales_distribucion: List["CanalDistribucion"] = Relationship(
         back_populates="client",
     )
-    categorias: List["CategoriaModel"] = Relationship(
+    categorias: List["Categoria"] = Relationship(
         back_populates="client"
     )
-    gerentes_regionales: List["GerenteRegionalModel"] = Relationship(
+    gerentes_regionales: List["GerenteRegional"] = Relationship(
         back_populates="client",
     )
-    gerentes_nacionales: List["GerenteNacionalModel"] = Relationship(
+    gerentes_nacionales: List["GerenteNacional"] = Relationship(
         back_populates="client",
     )
-    subcanales_adicionales: List["SubcanalAdicionalModel"] = Relationship(
+    subcanales_adicionales: List["SubcanalAdicional"] = Relationship(
         back_populates="client",
     )
-    sucursales: List["SucursalModel"] = Relationship(
+    sucursales: List["Sucursal"] = Relationship(
         back_populates="client",
     )
-    vendedores: List["VendedorModel"] = Relationship(
+    vendedores: List["Vendedor"] = Relationship(
         back_populates="client",
     )
 
 
 # Departamentos Model -----------------
-class DepartamentoModel(BaseModelAutoId, table=True):
+class Departamento(BaseModelAutoId, table=True):
     """ Model for Departamentos"""
     name: str = Field(..., description="Nombre Departamento")
     provincia_id: Optional[int] = Field(
-        foreign_key="provinciamodel.id",
+        foreign_key="Provincia.id",
     )
-    provincia: Optional["ProvinciaModel"] = Relationship(
+    provincia: Optional["Provincia"] = Relationship(
         back_populates="departamentos",
     )
 
 
 # Provincias Model -----------------
-class ProvinciaModel(BaseModelAutoId, table=True):
+class Provincia(BaseModelAutoId, table=True):
     """ Model for Provincias
     """
     name: str = Field(..., description="Nombre Provincia")
-    departamentos: List["DepartamentoModel"] = Relationship(
+    departamentos: List["Departamento"] = Relationship(
         back_populates="provincia",
     )
 
 
 # Models for PDV API -----------------
-class PDVModel(BaseModel):
+class PDV(BaseModel):
     cod_pdv: str = Field(..., description="Código PDV")
     name: str = Field(..., description="Nombre PDV")
     fecha_alta: Optional[datetime] = Field(
@@ -180,10 +180,10 @@ class PDVModel(BaseModel):
     lon: float = Field(..., description="PDV longitud")
     departamento_id: Optional[int] = Field(
         default=None,
-        foreign_key="departamentomodel.id",
-        description="Foreign key a DepartamentoModel"
+        foreign_key="Departamento.id",
+        description="Foreign key a Departamento"
     )
-    pois: List["POIModel"] = Relationship(
+    pois: List["POI"] = Relationship(
         back_populates="pdv",
         sa_relationship_kwargs={"description": "Lista de POIs en este PDV"}
     )
@@ -285,14 +285,14 @@ class CreatePDVSchema(SQLModel):
     lon: float = Field(..., description="PDV longitud")
     departamento_id: Optional[int] = Field(
         default=None,
-        foreign_key="departamentomodel.id",
-        description="Foreign key a DepartamentoModel"
+        foreign_key="Departamento.id",
+        description="Foreign key a Departamento"
     )
     geohash: str = Field(..., description="Geohash del PDV")
 
 
 class PDVListSchema(SQLModel):
-    results: List[PDVModel] = Field(..., description="Listas de PDVs")
+    results: List[PDV] = Field(..., description="Listas de PDVs")
     count: int = Field(..., description="Total de PDVs")
 
 
@@ -301,76 +301,76 @@ class UpdatePDVSchema(SQLModel):
 
 
 # Models for Sucursal API -----------------
-class SucursalModel(BaseModel, table=True):
+class Sucursal(BaseModel, table=True):
     name: str = Field(..., description="Nombre Sucursal")
-    client_id: Optional[str] = Field(foreign_key="clientmodel.id")
-    client: Optional["ClientModel"] = Relationship(back_populates="sucursales")
+    client_id: Optional[str] = Field(foreign_key="Client.id")
+    client: Optional["Client"] = Relationship(back_populates="sucursales")
 
 
 # Canal Distribucion model -----------------
-class CanalDistribucionModel(BaseModel, table=True):
+class CanalDistribucion(BaseModel, table=True):
     name: str = Field(..., description="Nombre Canal Distribucion")
-    client_id: Optional[str] = Field(foreign_key="clientmodel.id")
-    client: Optional["ClientModel"] = Relationship(back_populates="canales_distribucion")
+    client_id: Optional[str] = Field(foreign_key="Client.id")
+    client: Optional["Client"] = Relationship(back_populates="canales_distribucion")
 
 
 # Categoria Model -----------------
-class CategoriaModel(BaseModel, table=True):
+class Categoria(BaseModel, table=True):
     name: str = Field(..., description="Nombre Categoria")
-    client_id: Optional[str] = Field(foreign_key="clientmodel.id")
-    client: Optional["ClientModel"] = Relationship(back_populates="categorias")
+    client_id: Optional[str] = Field(foreign_key="Client.id")
+    client: Optional["Client"] = Relationship(back_populates="categorias")
 
 
 # Subcanal Adicional Model -----------------
-class SubcanalAdicionalModel(BaseModel, table=True):
+class SubcanalAdicional(BaseModel, table=True):
     """ Model for Subcanal Adicional
     """
     name: str = Field(..., description="Nombre Subcanal Adicional")
-    client_id: Optional[str] = Field(foreign_key="clientmodel.id")
-    client: Optional["ClientModel"] = Relationship(back_populates="subcanales_adicionales")
+    client_id: Optional[str] = Field(foreign_key="Client.id")
+    client: Optional["Client"] = Relationship(back_populates="subcanales_adicionales")
 
 
 # Vendedor Model -----------------
-class VendedorModel(BaseModel, table=True):
+class Vendedor(BaseModel, table=True):
     name: str = Field(..., description="Nombre Vendedor")
-    client_id: Optional[str] = Field(foreign_key="clientmodel.id")
-    client: Optional["ClientModel"] = Relationship(back_populates="vendedores")
+    client_id: Optional[str] = Field(foreign_key="Client.id")
+    client: Optional["Client"] = Relationship(back_populates="vendedores")
 
 
 # Gerente Regional Model -----------------
-class GerenteRegionalModel(BaseModel, table=True):
+class GerenteRegional(BaseModel, table=True):
     """ Model for Gerente Regional
     """
     name: str = Field(..., description="Nombre Gerente Regional")
-    client_id: Optional[str] = Field(foreign_key="clientmodel.id")
-    client: Optional["ClientModel"] = Relationship(back_populates="gerentes_regionales")
+    client_id: Optional[str] = Field(foreign_key="Client.id")
+    client: Optional["Client"] = Relationship(back_populates="gerentes_regionales")
 
 
 # Gerente Nacional Model -----------------
-class GerenteNacionalModel(BaseModel, table=True):
+class GerenteNacional(BaseModel, table=True):
     name: str = Field(..., description="Nombre Gerente Nacional")
-    client_id: Optional[str] = Field(foreign_key="clientmodel.id")
-    client: Optional["ClientModel"] = Relationship(back_populates="gerentes_nacionales")
+    client_id: Optional[str] = Field(foreign_key="Client.id")
+    client: Optional["Client"] = Relationship(back_populates="gerentes_nacionales")
 
 
 # POIS Model -----------------
-class POISTypeModel(BaseModel):
+class POISType(BaseModel):
     name: str = Field(..., description="Nombre POI")
-    pois: List["POIModel"] = Relationship(
+    pois: List["POI"] = Relationship(
         back_populates="pois_type",
         sa_relationship_kwargs={}
     )
 
 
-class POIModel(BaseModel):
+class POI(BaseModel):
     name: str = Field(..., description="Nombre POI")
     pois_type_id: Optional[int] = Field(
         default=None,
-        foreign_key="poistypemodel.id",
-        description="Foreign key a POISTypeModel"
+        foreign_key="POISType.id",
+        description="Foreign key a POISType"
     )
     pdv_id: Optional[int] = Field(
         default=None,
-        foreign_key="pdvmodel.id",
-        description="Foreign key a PDVModel"
+        foreign_key="PDV.id",
+        description="Foreign key a PDV"
     )
