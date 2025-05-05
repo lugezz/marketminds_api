@@ -179,6 +179,83 @@ def process_related_names(
     return this_registro
 
 
+def process_base_model(
+    row,
+    id_key: str,
+    name_key: str,
+    ids_set: set,
+    model_class,
+    this_client,
+    models_to_import: list,
+):
+    new_record = process_any_id_name_pair(
+        row=row,
+        id_key=id_key,
+        name_key=name_key,
+        ids_set=ids_set,
+        model_class=model_class,
+    )
+
+    if new_record:
+        new_record.client_id = this_client.id
+        new_record.client = this_client
+        models_to_import.append(new_record)
+        ids_set.add(str(row[id_key]))
+
+    return new_record
+
+
+def process_provincia_departamento(
+    row,
+    models_to_import: list,
+    provincias_dict: dict,
+    names_provincia: set,
+    names_departamento: set,
+):
+    """
+    Procesa un registro de provincia y departamento.
+    :param row: La fila del DataFrame.
+    :param models_to_import: La lista de modelos a importar.
+    :param provincias_dict: El diccionario de provincias.
+    :param names_provincia: El set de nombres de provincias.
+    :param names_departamento: El set de nombres de departamentos.
+    :return: None
+    """
+    provincia_name = row["pv_pcia"]
+    if provincia_name not in names_provincia:
+        new_provincia = process_just_name(
+            row,
+            name_key="pv_pcia",
+            names_set=names_provincia,
+            model_class=Provincia,
+        )
+        if new_provincia:
+            # En el caso de provincia lo grabo ahora ya que necesito vincularlo a departamento
+            session.add(new_provincia)
+            session.commit()
+            provincias_dict[provincia_name] = new_provincia
+            names_provincia.add(provincia_name)
+    else:
+        new_provincia = provincias_dict[provincia_name]
+
+    # Departamento --------------------------------------
+    departamento_name = row["pv_departamento"]
+    prov_departamento_name = f"{new_provincia.id} - {departamento_name}"
+    if prov_departamento_name not in names_departamento:
+        new_departamento = process_related_names(
+            row,
+            name_key="pv_departamento",
+            names_set=names_departamento,
+            model_class=Departamento,
+            instance_related=new_provincia,
+            related_key="provincia_id",
+            related_instance="provincia",
+        )
+        if new_departamento:
+            models_to_import.append(new_departamento)
+            names_departamento.add(prov_departamento_name)
+
+
 def import_dataset() -> dict:
     # Toma el archivo de import (api/datasets/mdt_negocio_import.csv), lo convierte a un dataframe
     # y lo va procesando en los modelos de la base de datos.
@@ -249,138 +326,90 @@ def import_dataset() -> dict:
         # Fin Client -------------------------------------------------------------
 
         # CanalDistribucion -----------------------------
-        new_canal = process_any_id_name_pair(
-            row,
+        process_base_model(
+            row=row,
             id_key="id_cli_canal_dist",
             name_key="desc_cli_canal_dist",
             ids_set=ids_canal_distribucion,
             model_class=CanalDistribucion,
+            models_to_import=models_to_import,
+            this_client=this_cliente,
         )
 
-        if new_canal:
-            new_canal.client_id = this_cliente_id
-            new_canal.client = this_cliente
-            models_to_import.append(new_canal)
-            ids_canal_distribucion.add(str(row["id_cli_canal_dist"]))
-
         # Categoría ------------------------------------------
-        new_categoria = process_any_id_name_pair(
-            row,
+        process_base_model(
+            row=row,
             id_key="id_cli_categoria_dist",
             name_key="(Sin nombre)",
             ids_set=ids_categoria,
             model_class=Categoria,
+            models_to_import=models_to_import,
+            this_client=this_cliente,
         )
-        if new_categoria:
-            new_categoria.client_id = this_cliente_id
-            new_categoria.client = this_cliente
-            models_to_import.append(new_categoria)
-            ids_categoria.add(str(row["id_cli_categoria_dist"]))
 
-        # Provincia --------------------------------------
-        provincia_name = row["pv_pcia"]
-        if provincia_name not in names_provincia:
-            new_provincia = process_just_name(
-                row,
-                name_key="pv_pcia",
-                names_set=names_provincia,
-                model_class=Provincia,
-            )
-            if new_provincia:
-                # En el caso de provincia lo grabo ahora ya que necesito vincularlo a departamento
-                session.add(new_provincia)
-                session.commit()
-                provincias_dict[provincia_name] = new_provincia
-                names_provincia.add(provincia_name)
-        else:
-            new_provincia = provincias_dict[provincia_name]
-
-        # Departamento --------------------------------------
-        departamento_name = row["pv_departamento"]
-        prov_departamento_name = f"{new_provincia.id} - {departamento_name}"
-        if prov_departamento_name not in names_departamento:
-            new_departamento = process_related_names(
-                row,
-                name_key="pv_departamento",
-                names_set=names_departamento,
-                model_class=Departamento,
-                instance_related=new_provincia,
-                related_key="provincia_id",
-                related_instance="provincia",
-            )
-            if new_departamento:
-                models_to_import.append(new_departamento)
-                names_departamento.add(prov_departamento_name)
+        # Provincias y Departamentos -------------------------------------
+        process_provincia_departamento(
+            row=row,
+            models_to_import=models_to_import,
+            provincias_dict=provincias_dict,
+            names_provincia=names_provincia,
+            names_departamento=names_departamento,
+        )
 
         # Gerente Nacional --------------------------------
-        new_gerente_nacional = process_any_id_name_pair(
-            row,
+        process_base_model(
+            row=row,
             id_key="id_cli_gte_nacional",
             name_key="desc_cli_gte_nacional",
             ids_set=ids_gerente_nacional,
             model_class=GerenteNacional,
+            this_client=this_cliente,
+            models_to_import=models_to_import,
         )
-        if new_gerente_nacional:
-            new_gerente_nacional.client_id = this_cliente_id
-            new_gerente_nacional.client = this_cliente
-            models_to_import.append(new_gerente_nacional)
-            ids_gerente_nacional.add(str(row["id_cli_gte_nacional"]))
 
         # Gerente Regional --------------------------------
-        new_gerente_regional = process_any_id_name_pair(
-            row,
+        process_base_model(
+            row=row,
             id_key="id_cli_gte_regional",
             name_key="desc_cli_gte_regional",
             ids_set=ids_gerente_regional,
             model_class=GerenteRegional,
+            this_client=this_cliente,
+            models_to_import=models_to_import,
         )
-        if new_gerente_regional:
-            new_gerente_regional.client_id = this_cliente_id
-            new_gerente_regional.client = this_cliente
-            models_to_import.append(new_gerente_regional)
-            ids_gerente_regional.add(str(row["id_cli_gte_regional"]))
 
         # Sucursal --------------------------------------
-        new_sucursal = process_any_id_name_pair(
-            row,
+        process_base_model(
+            row=row,
             id_key="id_cli_suc_cuenta",
             name_key="desc_cli_suc_cuenta",
             ids_set=ids_sucursal,
             model_class=Sucursal,
+            this_client=this_cliente,
+            models_to_import=models_to_import,
         )
-        if new_sucursal:
-            new_sucursal.client_id = this_cliente_id
-            new_sucursal.client = this_cliente
-            models_to_import.append(new_sucursal)
-            ids_sucursal.add(str(row["id_cli_suc_cuenta"]))
 
         # Subcanal Adicional -----------------------------
-        new_subcanal_adicional = process_any_id_name_pair(
-            row,
+        process_base_model(
+            row=row,
             id_key="id_cli_subcanal_adic_dist",
             name_key="desc_cli_subcanal_dist",
             ids_set=ids_subcanal_adicional,
             model_class=SubcanalAdicional,
+            this_client=this_cliente,
+            models_to_import=models_to_import,
         )
-        if new_subcanal_adicional:
-            new_subcanal_adicional.client_id = this_cliente_id
-            new_subcanal_adicional.client = this_cliente
-            models_to_import.append(new_subcanal_adicional)
-            ids_subcanal_adicional.add(str(row["id_cli_subcanal_adic_dist"]))
 
         # Vendedor --------------------------------------
-        new_vendedor = process_any_id_name_pair(
-            row,
+        process_base_model(
+            row=row,
             id_key="id_cli_vendedor",
             name_key="desc_cli_vendedor",
             ids_set=ids_vendedor,
             model_class=Vendedor,
+            this_client=this_cliente,
+            models_to_import=models_to_import,
         )
-        if new_vendedor:
-            new_vendedor.client_id = this_cliente_id
-            new_vendedor.client = this_cliente
-            models_to_import.append(new_vendedor)
-            ids_vendedor.add(str(row["id_cli_vendedor"]))
 
         # pdv = PDV(
         #     id=row["pdv_id"],
