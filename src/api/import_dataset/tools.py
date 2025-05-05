@@ -12,8 +12,8 @@ from api.marketminds.models import (
     GerenteNacional,
     GerenteRegional,
     PDV,
-    # POI,
-    # POISType,
+    POIAndPDV,
+    POISType,
     Provincia,
     SubcanalAdicional,
     Sucursal,
@@ -84,24 +84,23 @@ pdv_keys_dict = {
     },
 }
 
-
-def get_clients_dict() -> dict[str, Client]:
-    clients = session.exec(select(Client)).all()
-    return {str(client.id): client for client in clients}
-
-
-def get_any_model_dict(model_to_get, this_key: str = 'id') -> dict[str, any]:
-    """
-    Devuelve un diccionario de un modelo específico.
-    :param model_to_get: El modelo del cual se quiere obtener los ids.
-    :return: Un diccionario con los ids del modelo.
-    """
-    # Obtener todos los registros del modelo
-    all_records = session.query(model_to_get).all()
-
-    # Crear un diccionario con los ids
-    records_dict = {getattr(record, this_key): record for record in all_records}
-    return records_dict
+pois_types = [
+    'pois_agencias_de_viajes',
+    'pois_alimentacion',
+    'pois_alojamientos',
+    'pois_atracciones_turisticas',
+    'pois_bares_bodegas',
+    'pois_centros_de_salud',
+    'pois_clubes_deportivos',
+    'pois_clubes_nocturnos'
+    'pois_escuelas',
+    'pois_heladerias',
+    'pois_hoteles',
+    'pois_instituciones_educativas',
+    'pois_otras_instituciones',
+    'pois_servicios_de_transporte',
+    'pois_bus_stop',
+]
 
 
 def get_set_of_ids(model_to_get, this_key: str = 'id') -> set:
@@ -130,6 +129,76 @@ def get_set_of_names(model_to_get) -> set:
     # Crear un set con los ids
     names = {record.name for record in all_records}
     return names
+
+
+def get_model_dict(model_class, this_key: str = 'id') -> dict:
+    """
+    Devuelve un diccionario de PDVs.
+    """
+    # Obtener todos los registros del modelo
+    all_records = session.query(model_class).all()
+
+    # Crear un set con los ids
+    records_dict = {
+        getattr(record, this_key): record
+        for record in all_records
+    }
+    return records_dict
+
+
+def get_set_of_pois_and_pdv() -> set:
+    """
+    Devuelve un set de ids de POI y PDV.
+    :return: Un set con los ids de POI y PDV.
+    """
+    # Obtener todos los registros del modelo
+    all_records = session.query(POIAndPDV).all()
+
+    # Crear un set con los información que no puede ser duplicada
+    pois_and_pdv = {
+        f'{record.pois_type.name} - {record.pdv_id}'
+        for record in all_records
+    }
+
+    return pois_and_pdv
+
+
+def init_pois_types():
+    """
+    Inicializa los tipos de POI en la base de datos.
+    :return: None
+    """
+    dict_of_pois_types = get_model_dict(POISType, this_key='name')
+
+    for poi_type in pois_types:
+        if poi_type in dict_of_pois_types.keys():
+            # Si el tipo de POI ya existe, no lo creo
+            continue
+        new_poi_type = POISType(name=poi_type)
+        session.add(new_poi_type)
+        dict_of_pois_types[poi_type] = new_poi_type
+    session.commit()
+
+    return dict_of_pois_types
+
+
+def get_clients_dict() -> dict[str, Client]:
+    clients = session.exec(select(Client)).all()
+    return {str(client.id): client for client in clients}
+
+
+def get_any_model_dict(model_to_get, this_key: str = 'id') -> dict[str, any]:
+    """
+    Devuelve un diccionario de un modelo específico.
+    :param model_to_get: El modelo del cual se quiere obtener los ids.
+    :return: Un diccionario con los ids del modelo.
+    """
+    # Obtener todos los registros del modelo
+    all_records = session.query(model_to_get).all()
+
+    # Crear un diccionario con los ids
+    records_dict = {getattr(record, this_key): record for record in all_records}
+    return records_dict
 
 
 def get_set_of_departamentos_names() -> set:
@@ -271,6 +340,15 @@ def process_pdv(
     this_client,
     models_to_import: list,
 ):
+    """
+    Procesa un registro de PDV.
+    :param row: La fila del DataFrame.
+    :param ids_set: El set de ids de PDV.
+    :param this_client: El cliente al que pertenece el PDV.
+    :param models_to_import: La lista de modelos a importar.
+
+    :return: None o si no crea o registro creado
+    """
     if str(row['id_pdv_unique']) in ids_set:
         # Si el pdv ya existe, no lo creo
         return None
@@ -302,6 +380,46 @@ def process_pdv(
     ids_set.add(str(row['id_pdv_unique']))
 
     return new_pdv
+
+
+def process_pois(
+    row,
+    ids_set: set,
+    models_to_import: list,
+    dict_of_pois_types: dict,
+    pdv_instances_dict: dict = {},
+):
+    """
+    Procesa un registro de POI.
+    :param row: La fila del DataFrame.
+    :param ids_set: El set de ids de POI.
+    :param models_to_import: La lista de modelos a importar.
+    :param set_of_pois_types: El set de tipos de POI.
+
+    :return: None
+    """
+    for poi_type in pois_types:
+        if poi_type in row and not pd.isna(row[poi_type]):
+            poi_quantity = row[poi_type]
+            pdv_id = str(row['id_pdv_unique'])
+            poi_identifier = f"{poi_type} - {pdv_id}"
+            if poi_quantity > 0 and poi_identifier not in ids_set:
+                poi_type_instance = dict_of_pois_types.get(poi_type)
+                if poi_type_instance is None:
+                    # Si el tipo de POI no existe, dejo un log y continúo
+                    logger.warning(f"Tipo de POI {poi_type} no encontrado en la base de datos.")
+                    continue
+                pdv_instance = pdv_instances_dict.get(pdv_id)
+                # Si el poi ya existe, no lo creo
+                new_poi = POIAndPDV(
+                    pois_type=poi_type_instance,
+                    pois_type_id=poi_type_instance.id,
+                    pdv=pdv_instance,
+                    pdv_id=pdv_id,
+                    quantity=poi_quantity,
+                )
+                models_to_import.append(new_poi)
+                ids_set.add(poi_identifier)
 
 
 def process_provincia_departamento(
@@ -367,6 +485,9 @@ def import_dataset() -> dict:
     # Cargar el archivo CSV en un DataFrame de pandas
     df = pd.read_csv("api/datasets/mdt_negocio_import.csv", encoding="utf-8")
 
+    # Init pois_types
+    dict_of_pois_types = init_pois_types()
+
     # Crear una sesión de base de datos
     models_to_import = []
 
@@ -395,6 +516,8 @@ def import_dataset() -> dict:
     ids_vendedor = initial_vendedor.copy()
     initial_pdv = get_set_of_ids(PDV)
     ids_pdv = initial_pdv.copy()
+    initial_poi = get_set_of_pois_and_pdv()
+    ids_poi = initial_poi.copy()
 
     # -------------------------------------------------------------------------------------
 
@@ -525,6 +648,27 @@ def import_dataset() -> dict:
     session.add_all(models_to_import)
     session.commit()
 
+    # Procesar los POI en una segunda ronda con ya los PDV creados
+    models_to_import_pois = []
+    pdv_instances_dict = get_model_dict(PDV)
+    for index, row in df.iterrows():
+        if index == 0:
+            # Skip the first row if it contains headers or unwanted data
+            continue
+        # Crear instancias de los modelos y asignar valores ------------------------------------
+        # POI ------------------------------------------------
+        process_pois(
+            row=row,
+            ids_set=ids_poi,
+            models_to_import=models_to_import_pois,
+            dict_of_pois_types=dict_of_pois_types,
+            pdv_instances_dict=pdv_instances_dict,
+        )
+
+    # Agregar las instancias a la sesión
+    session.add_all(models_to_import_pois)
+    session.commit()
+
     resp['registros_added'] = {
         "canal_distribucion": len(ids_canal_distribucion) - len(initial_canal_distribucion),
         "categoria": len(ids_categoria) - len(initial_categoria),
@@ -534,8 +678,7 @@ def import_dataset() -> dict:
         "gerente_nacional": len(ids_gerente_nacional) - len(initial_gerente_nacional),
         "gerente_regional": len(ids_gerente_regional) - len(initial_gerente_regional),
         "pdv": len(ids_pdv) - len(initial_pdv),
-        # "poi_type": len(ids_poi_type),
-        # "poi": len(ids_poi),
+        "poi": len(ids_poi) - len(initial_poi),
         "subcanal_adicional": len(ids_subcanal_adicional) - len(initial_subcanal_adicional),
         "sucursal": len(ids_sucursal) - len(initial_sucursal),
         "vendedor": len(ids_vendedor) - len(initial_vendedor),

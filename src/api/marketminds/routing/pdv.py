@@ -1,10 +1,10 @@
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
-from sqlalchemy import select, func
+from sqlalchemy import select
 
 from api.db.session import get_session
 from api.helpers.tools import dict_all_serialized
-from api.marketminds.models import PDV, POI
+from api.marketminds.models import PDV
 
 
 pdv_router = APIRouter()
@@ -21,10 +21,7 @@ def get_pdv():
             PDV.id,
             PDV.cod_pdv,
             PDV.ubicacion,
-            func.count(POI.id).label("pois_count")
         )
-        .join(POI, POI.pdv_id == PDV.id, isouter=True)
-        .group_by(PDV.id)
     )
 
     all_pdv = session.execute(stmt).all()

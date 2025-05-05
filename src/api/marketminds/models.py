@@ -180,7 +180,6 @@ class PDV(BaseModel, table=True):
     )
     lat: float = Field(..., description="PDV latitud")
     lon: float = Field(..., description="PDV longitud")
-    pois: List["POI"] = Relationship(back_populates="pdv")
     geohash: str = Field(..., description="Geohash del PDV")
     bandejas: Optional[str] = Field(default=None, description="Número de bandejas")
     m2: Optional[str] = Field(default=None, description="Número de m2")
@@ -271,6 +270,7 @@ class PDV(BaseModel, table=True):
     )
     client_id: Optional[str] = Field(foreign_key="client.id")
     client: Optional["Client"] = Relationship(back_populates="pdvs")
+    pois_link: list["POIAndPDV"] = Relationship(back_populates="pdv")
 
 
 class CreatePDVSchema(SQLModel):
@@ -354,18 +354,21 @@ class GerenteNacional(BaseModel, table=True):
 
 
 # POIS Model -----------------
-class POISType(BaseModel, table=True):
+class POISType(BaseModelAutoId, table=True):
     """ Model for POIS
     """
     name: str = Field(..., description="Nombre POI")
-    pois: List["POI"] = Relationship(back_populates="pois_type")
+    pois_and_pdv: List["POIAndPDV"] = Relationship(
+        back_populates="pois_type",
+    )
+    pdvs_link: list["POIAndPDV"] = Relationship(back_populates="pois_type")
 
 
-class POI(BaseModel, table=True):
+class POIAndPDV(BaseModelAutoId, table=True):
     """ Model for POI
     """
-    name: str = Field(..., description="Nombre POI")
-    pois_type_id: Optional[str] = Field(foreign_key="poistype.id")
-    pois_type: Optional["POISType"] = Relationship(back_populates="pois")
+    pois_type_id: Optional[int] = Field(foreign_key="poistype.id")
+    pois_type: Optional["POISType"] = Relationship(back_populates="pdvs_link")
     pdv_id: Optional[str] = Field(foreign_key="pdv.id")
-    pdv: Optional["PDV"] = Relationship(back_populates="pois")
+    pdv: Optional["PDV"] = Relationship(back_populates="pois_link")
+    quantity: int = Field(..., description="Cantidad de POI")
