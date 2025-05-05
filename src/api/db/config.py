@@ -1,8 +1,7 @@
-from decouple import Config, RepositoryEnv
+from decouple import config
 
-
-# config = Config()
-config = Config(repository=RepositoryEnv('../.env.local'))
+# from decouple import Config, RepositoryEnv
+# config = Config(repository=RepositoryEnv('../.env.local'))
 
 
 DATABASE_CONFIG = {
